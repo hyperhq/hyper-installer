@@ -6,13 +6,18 @@
 #   wget -qO- https://hyper.sh/install | bash
 #   curl -sSL https://hyper.sh/install | bash
 #*******************************************************************
+DEV_MODE=""
+SLEEP_SEC=10
+if [ $# -eq 1 -a "$1" == "--dev" ];then
+  DEV_MODE="-dev"; SLEEP_SEC=3; echo "[test mode]"
+fi
 set -e
 ########## Variable ##########
 CURRENT_USER="$(id -un 2>/dev/null || true)"
 BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
 ########## Parameter ##########
-S3_URL="https://hyper-install.s3.amazonaws.com"
-PKG_FILE="hyper-latest.tgz"
+S3_URL="https://hyper-install${DEV_MODE}.s3.amazonaws.com"
+PKG_FILE="hyper-latest${DEV_MODE}.tgz"
 UNTAR_DIR="hyper-dev"
 SUPPORT_EMAIL="support@hyper.sh"
 ########## Constant ##########
@@ -42,7 +47,7 @@ ERR_QEMU_LOW_VERSION=(28 "Need Qemu version 2.0 at least!")
 ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed!")
 ERR_EXEC_INSTALL_FAILED=(41 "Install hyper failed!")
 ERR_INSTALL_SERVICE_FAILED=(42 "Install hyperd as service failed!")
-ERR_HYPER_NOT_FOUND=(60 "Can not find hyper && hyperd after setup!")
+ERR_HYPER_NOT_FOUND=(60 "Can not find hyper and hyperd after setup!")
 ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
@@ -54,7 +59,6 @@ main() {
   stop_running_hyperd
   install_hyper
   start_hyperd_service
-  check_hyper_after_install
   exit 0
 }
 check_hyper_before_install() {
@@ -63,10 +67,10 @@ check_hyper_before_install() {
     cat <<COMMENT
 Prompt: "hyper" appears to already installed, hyperd serive will be restart during install.
 You may press Ctrl+C to abort this process.
-+ sleep 10 seconds
 COMMENT
+    echo "+ sleep ${SLEEP_SEC} seconds"
     echo -n "${RESET}"
-    n=10
+    n=${SLEEP_SEC}
     until [ ${n} -le 0 ]; do
       echo -n "." && n=$((n-1)) && sleep 1
     done
@@ -169,7 +173,6 @@ check_deps_docker() {
       cat <<COMMENT
 Please start docker service:
     sudo service docker start
-
 COMMENT
       exit ${ERR_DOCKER_NOT_RUNNING[0]}
     fi
@@ -261,8 +264,18 @@ install_hyper() {
   cd ${BOOTSTRAP_DIR}/${UNTAR_DIR}
   ${BASH_C} "./install.sh" 1> /dev/null
   echo -n "."
-  install_hyperd_service
-  echo -n "."
+  if [[ -f /usr/local/bin/hyper ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyper ]] && [[ ! -f /usr/bin/hyperd ]] ;then
+    ${BASH_C} "ln -s /usr/local/bin/hyper /usr/bin/hyper"
+    ${BASH_C} "ln -s /usr/local/bin/hyperd /usr/bin/hyperd"
+  fi
+  if (command_exist hyper hyperd);then
+    install_hyperd_service
+    echo -n "."
+  else
+    show_message error "${ERR_HYPER_NOT_FOUND[1]}"
+    display_support ${ERR_HYPER_NOT_FOUND[0]}
+    exit ${ERR_HYPER_NOT_FOUND[0]}
+  fi
   show_message done " Done\n"
 }
 install_hyperd_service() {
@@ -309,36 +322,28 @@ start_hyperd_service() {
   else ${BASH_C} "service hyperd start";
   fi
   sleep 3
-}
-check_hyper_after_install() {
-  if (command_exist hyper hyperd);then
-    set +e
-    pgrep hyperd >/dev/null 2>&1
-    if [ $? -eq 0 ];then
-      show_message success "\nhyperd is running."
-      cat <<COMMENT
+  set +e
+  pgrep hyperd >/dev/null 2>&1
+  if [ $? -eq 0 ];then
+    show_message success "\nhyperd is running."
+    cat <<COMMENT
 ----------------------------------------------------
 To see how to use hyper cli:
-    sudo hyper help
+  sudo hyper help
 To manage hyperd service:
-    sudo service hyperd {start|stop|restart|status}
+  sudo service hyperd {start|stop|restart|status}
 To get more information:
-    http://hyper.sh
+  http://hyper.sh
 COMMENT
-    else
-      show_message error "start hyperd failed.\n"
-      cat <<COMMENT
-Please try to start hyperd by manual:
-    sudo service hyperd restart
-    sudo service hyperd status
-COMMENT
-    fi
-    set -e
   else
-    show_message error "${MSG_HYPER_NOT_FOUND[1]}"
-    display_support ${ERR_HYPER_NOT_FOUND[0]}
-    exit ${ERR_HYPER_NOT_FOUND[0]}
+    show_message warn "\nhyperd isn't running."
+    cat <<COMMENT
+Please try to start hyperd by manual:
+  sudo service hyperd restart
+  sudo service hyperd status
+COMMENT
   fi
+  set -e
 }
 display_support() {
   echo "Sorry, we are suffering from some technical issue($1), please contact ${SUPPORT_EMAIL}"
@@ -351,8 +356,10 @@ command_exist() {
 }
 get_curl() {
   CURL_C=""
-  if (command_exist wget);then CURL_C='wget -qO '
-  elif (command_exist curl);then CURL_C='curl -sSL -o '
+  if (command_exist wget);then
+    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget -qO '; fi
+  elif (command_exist curl);then
+    if [ "${DEV_MODE}" != "" ];then CURL_C='curl -SL -o '; else CURL_C='curl -sSL -o '; fi
   fi
   echo ${CURL_C}
 }
