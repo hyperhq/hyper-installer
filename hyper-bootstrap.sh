@@ -222,13 +222,18 @@ check_deps_initsystem() {
 }
 fetch_hyper_package() {
   set +e
-  show_message info "Fetch package "
+  show_message info "Fetch package...\n"
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
-  local CURL_C=$(get_curl)
+  local USE_WGET=$( echo $(get_curl) | awk -F"|" '{print $1}' )
+  local CURL_C=$( echo $(get_curl) | awk -F"|" '{print $2}' )
   mkdir -p ${BOOTSTRAP_DIR} && cd ${BOOTSTRAP_DIR}
   if [ -s ${TGT_FILE} ];then
-    ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
+    if [ "${USE_WGET}" == "false" ];then
+      ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
+    else
+      ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
+    fi
     if [ -s "${TGT_FILE}.md5" ];then
         NEW_MD5=$( cat ${TGT_FILE}.md5 | awk '{print $1}' )
         OLD_MD5=$( md5sum ${TGT_FILE} | awk '{print $1}' )
@@ -245,9 +250,13 @@ fetch_hyper_package() {
   elif [ -f ${TGT_FILE} ];then
     ${BASH_C} "\rm -rf ${BOOTSTRAP_DIR}/*"
   fi
-  echo -n "."
   if [ ! -f ${TGT_FILE} ];then
-    ${CURL_C} ${TGT_FILE} ${SRC_URL}
+    echo
+    if [ "${USE_WGET}" == "false" ];then
+      ${CURL_C} ${TGT_FILE} ${SRC_URL}
+    else
+      ${CURL_C} ${SRC_URL} 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
+    fi
     if [ $? -ne 0 ];then
       show_message error "${ERR_FETCH_INST_PKG_FAILED[1]}" && exit "${ERR_FETCH_INST_PKG_FAILED[0]}"
     fi
@@ -353,13 +362,14 @@ command_exist() {
   type "$@" > /dev/null 2>&1
 }
 get_curl() {
-  CURL_C=""
+  CURL_C=""; USE_WGET="false"
   if (command_exist curl);then
-    if [ "${DEV_MODE}" != "" ];then CURL_C='curl -SL -o '; else CURL_C='curl -sSL -o '; fi
+    if [ "${DEV_MODE}" != "" ];then CURL_C='curl -SL -o '; else CURL_C='curl -O --progress-bar -o '; fi
   elif (command_exist wget);then
-    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget -qO '; fi
+    USE_WGET="true"
+    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget --progress=dot '; fi
   fi
-  echo ${CURL_C}
+  echo "${USE_WGET}|${CURL_C}"
 }
 show_message() {
   case "$1" in
