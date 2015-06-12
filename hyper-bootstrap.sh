@@ -229,10 +229,10 @@ fetch_hyper_package() {
   local CURL_C=$( echo $(get_curl) | awk -F"|" '{print $2}' )
   mkdir -p ${BOOTSTRAP_DIR} && cd ${BOOTSTRAP_DIR}
   if [ -s ${TGT_FILE} ];then
-    if [ "${USE_WGET}" == "false" ];then
-      ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
-    else
+    if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
       ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
+    else
+      ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
     fi
     if [ -s "${TGT_FILE}.md5" ];then
         NEW_MD5=$( cat ${TGT_FILE}.md5 | awk '{print $1}' )
@@ -252,10 +252,10 @@ fetch_hyper_package() {
   fi
   if [ ! -f ${TGT_FILE} ];then
     echo
-    if [ "${USE_WGET}" == "false" ];then
-      ${CURL_C} ${TGT_FILE} ${SRC_URL}
-    else
+    if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
       ${CURL_C} ${SRC_URL} 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
+    else
+      ${CURL_C} ${TGT_FILE} ${SRC_URL}
     fi
     if [ $? -ne 0 ];then
       show_message error "${ERR_FETCH_INST_PKG_FAILED[1]}" && exit "${ERR_FETCH_INST_PKG_FAILED[0]}"
