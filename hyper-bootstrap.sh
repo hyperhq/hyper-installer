@@ -34,7 +34,7 @@ WHITE=`tput setaf 7`
 LIGHT=`tput bold `
 RESET=`tput sgr0`
 #Error Message
-ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script needs to run as root, please use sudo!")
+ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please retry use 'sudo' or root user!")
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
 ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support (${SUPPORT_DISTRO[@]}) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
@@ -81,13 +81,11 @@ check_user() {
   if [ "${CURRENT_USER}" != "root" ];then
     if (command_exist sudo);then
       BASH_C="sudo -E bash -c"
-    elif (command_exist su);then
-      BASH_C='su -c'
     else
       show_message error "${ERR_ROOT_PRIVILEGE_REQUIRED[1]}" && exit ${ERR_ROOT_PRIVILEGE_REQUIRED[0]}
     fi
     show_message info "\n${WHITE}Hint: Hyper installer need root privilege\n"
-    sudo -s echo -n
+    ${BASH_C} "echo -n"
   fi
 }
 check_deps() {
@@ -167,7 +165,7 @@ check_deps_docker() {
   #docker 1.5+ should be installed and running
   if (command_exist docker);then
     set +e
-    sudo docker version > /dev/null 2>&1
+    ${BASH_C} "docker version > /dev/null 2>&1"
     if [ $? -ne 0 ];then
       show_message error "${ERR_DOCKER_NOT_RUNNING[1]}\n"
       cat <<COMMENT
@@ -236,16 +234,16 @@ fetch_hyper_package() {
         OLD_MD5=$( md5sum ${TGT_FILE} | awk '{print $1}' )
         if [[ ! -z ${OLD_MD5} ]] && [[ ! -z ${NEW_MD5} ]] && [[ "${OLD_MD5}" != "${NEW_MD5}" ]];then
           show_message info "${LIGHT}Found new hyper version, will download it now!\n"
-          ${BASH_C} "sudo rm  -rf ${BOOTSTRAP_DIR}/*"
+          ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/*"
         elif [ ! -z ${OLD_MD5} -a "${OLD_MD5}" == "${NEW_MD5}" ];then
           #no update
-          ${BASH_C} "sudo rm  -rf ${BOOTSTRAP_DIR}/${UNTAR_DIR}"
+          ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/${UNTAR_DIR}"
         else
-          ${BASH_C} "sudo rm -rf ${BOOTSTRAP_DIR}/*"
+          ${BASH_C} "\rm -rf ${BOOTSTRAP_DIR}/*"
         fi
     fi
   elif [ -f ${TGT_FILE} ];then
-    ${BASH_C} "sudo rm -rf ${BOOTSTRAP_DIR}/*"
+    ${BASH_C} "\rm -rf ${BOOTSTRAP_DIR}/*"
   fi
   echo -n "."
   if [ ! -f ${TGT_FILE} ];then
@@ -356,10 +354,10 @@ command_exist() {
 }
 get_curl() {
   CURL_C=""
-  if (command_exist wget);then
-    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget -qO '; fi
-  elif (command_exist curl);then
+  if (command_exist curl);then
     if [ "${DEV_MODE}" != "" ];then CURL_C='curl -SL -o '; else CURL_C='curl -sSL -o '; fi
+  elif (command_exist wget);then
+    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget -qO '; fi
   fi
   echo ${CURL_C}
 }
