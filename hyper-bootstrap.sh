@@ -221,8 +221,14 @@ check_deps_initsystem() {
   echo -n "."
 }
 fetch_hyper_package() {
-  set +e
   show_message info "Fetch package...\n"
+  set +e
+  ${BASH_C} "ping -c 3 -W 2 hyper-install${DEV_MODE}.s3.amazonaws.com >/dev/null 2>&1"
+  if [ $? -ne 0 ];then
+    S3_URL="https://mirror-hyper-install${DEV_MODE}.s3.amazonaws.com"
+  else
+    S3_URL="https://hyper-install${DEV_MODE}.s3.amazonaws.com"
+  fi
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
   local USE_WGET=$( echo $(get_curl) | awk -F"|" '{print $1}' )
@@ -261,7 +267,6 @@ fetch_hyper_package() {
       show_message error "${ERR_FETCH_INST_PKG_FAILED[1]}" && exit "${ERR_FETCH_INST_PKG_FAILED[0]}"
     fi
   fi
-  echo -n "."
   show_message done " Done\n"
   set -e
 }
