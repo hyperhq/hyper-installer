@@ -1,13 +1,10 @@
 #!/bin/bash
-#*******************************************************************
 # Description:  This script is used to install hyper cli and hyperd
-#*******************************************************************
 # Usage:
 #   wget -qO- https://hyper.sh/install | bash
 #   curl -sSL https://hyper.sh/install | bash
 #*******************************************************************
-DEV_MODE=""
-SLEEP_SEC=10
+DEV_MODE=""; SLEEP_SEC=10
 if [ $# -eq 1 -a "$1" == "--dev" ];then
   DEV_MODE="-dev"; SLEEP_SEC=3; echo "[test mode]"
 fi
@@ -16,7 +13,7 @@ set -e
 CURRENT_USER="$(id -un 2>/dev/null || true)"
 BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
 ########## Parameter ##########
-S3_URL="https://hyper-install${DEV_MODE}.s3.amazonaws.com"
+S3_URL="http://hyper-install${DEV_MODE}.s3.amazonaws.com"
 PKG_FILE="hyper-latest${DEV_MODE}.tgz"
 UNTAR_DIR="hyper-dev"
 SUPPORT_EMAIL="support@hyper.sh"
@@ -44,7 +41,8 @@ ERR_DOCKER_NOT_RUNNING=(25 "Docker daemon isn't running!")
 ERR_DOCKER_GET_VER_FAILED=(26 "Can not get docker version!")
 ERR_QEMU_NOT_INSTALL=(27 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(28 "Need Qemu version 2.0 at least!")
-ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed!")
+ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed, please retry!")
+ERR_INST_PKG_MD5_ERROR=(33 "Checksum of install package error, please retry!")
 ERR_EXEC_INSTALL_FAILED=(41 "Install hyper failed!")
 ERR_INSTALL_SERVICE_FAILED=(42 "Install hyperd as service failed!")
 ERR_HYPER_NOT_FOUND=(60 "Can not find hyper and hyperd after setup!")
@@ -68,8 +66,7 @@ check_hyper_before_install() {
 Prompt: "hyper" appears to already installed, hyperd serive will be restart during install.
 You may press Ctrl+C to abort this process.
 COMMENT
-    echo "+ sleep ${SLEEP_SEC} seconds"
-    echo -n "${RESET}"
+    echo -n "+ sleep ${SLEEP_SEC} seconds${RESET}"
     n=${SLEEP_SEC}
     until [ ${n} -le 0 ]; do
       echo -n "." && n=$((n-1)) && sleep 1
@@ -221,13 +218,13 @@ check_deps_initsystem() {
   echo -n "."
 }
 fetch_hyper_package() {
-  show_message info "Fetch package...\n"
+  show_message info "Fetch checksum and package...\n"
   set +e
   ${BASH_C} "ping -c 3 -W 2 hyper-install${DEV_MODE}.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
-    S3_URL="https://mirror-hyper-install${DEV_MODE}.s3.amazonaws.com"
+    S3_URL="http://mirror-hyper-install${DEV_MODE}.s3.amazonaws.com"
   else
-    S3_URL="https://hyper-install${DEV_MODE}.s3.amazonaws.com"
+    S3_URL="http://hyper-install${DEV_MODE}.s3.amazonaws.com"
   fi
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
@@ -246,8 +243,7 @@ fetch_hyper_package() {
         if [[ ! -z ${OLD_MD5} ]] && [[ ! -z ${NEW_MD5} ]] && [[ "${OLD_MD5}" != "${NEW_MD5}" ]];then
           show_message info "${LIGHT}Found new hyper version, will download it now!\n"
           ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/*"
-        elif [ ! -z ${OLD_MD5} -a "${OLD_MD5}" == "${NEW_MD5}" ];then
-          #no update
+        elif [ ! -z ${OLD_MD5} -a "${OLD_MD5}" == "${NEW_MD5}" ];then #no update
           ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/${UNTAR_DIR}"
         else
           ${BASH_C} "\rm -rf ${BOOTSTRAP_DIR}/*"
@@ -257,14 +253,22 @@ fetch_hyper_package() {
     ${BASH_C} "\rm -rf ${BOOTSTRAP_DIR}/*"
   fi
   if [ ! -f ${TGT_FILE} ];then
-    echo
+    \rm -rf ${TGT_FILE}.md5 >/dev/null 2>&1
     if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
+      ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
       ${CURL_C} ${SRC_URL} 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
     else
+      ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
       ${CURL_C} ${TGT_FILE} ${SRC_URL}
     fi
     if [ $? -ne 0 ];then
       show_message error "${ERR_FETCH_INST_PKG_FAILED[1]}" && exit "${ERR_FETCH_INST_PKG_FAILED[0]}"
+    else
+      MD5_REMOTE=$(cat ${TGT_FILE}.md5 | awk '{print $1}'); MD5_LOCAL=$(md5sum ${TGT_FILE} | awk '{print $1}')
+      if [ ${MD5_REMOTE} != ${MD5_LOCAL} ];then
+        echo "required checksum: ${MD5_REMOTE}, but downloaded package is ${MD5_LOCAL}"
+        show_message error "${ERR_INST_PKG_MD5_ERROR[1]}" && exit "${ERR_INST_PKG_MD5_ERROR[0]}"
+      fi
     fi
   fi
   show_message done " Done\n"
