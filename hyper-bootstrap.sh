@@ -1,10 +1,13 @@
 #!/bin/bash
 # Description:  This script is used to install hyper cli and hyperd
 # Usage:
-#   wget -qO- https://hyper.sh/install | bash
-#   curl -sSL https://hyper.sh/install | bash
-#*******************************************************************
-DEV_MODE=""; SLEEP_SEC=10
+#  install from remote
+#    wget -qO- https://hyper.sh/install | bash
+#    curl -sSL https://hyper.sh/install | bash
+# install from local
+#    ./bootstrap.sh
+BASE_DIR=$(cd "$(dirname "$0")"; pwd); cd ${BASE_DIR}
+DEV_MODE=""; SLEEP_SEC=10; SUPPORT_XEN="";
 if [ $# -eq 1 -a "$1" == "--dev" ];then
   DEV_MODE="-dev"; SLEEP_SEC=3; echo "[test mode]"
 fi
@@ -15,7 +18,7 @@ BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
 ########## Parameter ##########
 S3_URL="http://hyper-install${DEV_MODE}.s3.amazonaws.com"
 PKG_FILE="hyper-latest${DEV_MODE}.tgz"
-UNTAR_DIR="hyper-dev"
+UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos)
@@ -27,6 +30,7 @@ FEDORA_VER=(21 22)
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 YELLOW=`tput setaf 3`
+BLUE=`tput setaf 4`
 WHITE=`tput setaf 7`
 LIGHT=`tput bold `
 RESET=`tput sgr0`
@@ -41,6 +45,9 @@ ERR_DOCKER_NOT_RUNNING=(25 "Docker daemon isn't running!")
 ERR_DOCKER_GET_VER_FAILED=(26 "Can not get docker version!")
 ERR_QEMU_NOT_INSTALL=(27 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(28 "Need Qemu version 2.0 at least!")
+ERR_XEN_NOT_INSTALL=(29 "Please install xen 4.5+ first!")
+ERR_XEN_GET_VER_FAILED=(30 "Can not get xen version, xen daemon isn't running!")
+ERR_XEN_VER_LOW=(31 "Sorry, hyper only support xen 4.5+")
 ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed, please retry!")
 ERR_INST_PKG_MD5_ERROR=(33 "Checksum of install package error, please retry!")
 ERR_EXEC_INSTALL_FAILED=(41 "Install hyper failed!")
@@ -50,10 +57,16 @@ ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
 main() {
-  check_hyper_before_install
   check_user
   check_deps
-  fetch_hyper_package
+  check_hyper_before_install
+  if [[ -f install.sh ]] && [[ -d bin ]] && [[ -d boot ]] && [[ -d service ]];then
+    show_message debug "Install from local ${BASE_DIR}/"
+    BOOTSTRAP_DIR="${BASE_DIR}"
+  else
+    show_message debug "Install from remote"
+    fetch_hyper_package
+  fi
   stop_running_hyperd
   install_hyper
   start_hyperd_service
@@ -66,11 +79,12 @@ check_hyper_before_install() {
 Prompt: "hyper" appears to already installed, hyperd serive will be restart during install.
 You may press Ctrl+C to abort this process.
 COMMENT
-    echo -n "+ sleep ${SLEEP_SEC} seconds${RESET}"
+    echo -e -n "+ sleep ${SLEEP_SEC} seconds${RESET}"
     n=${SLEEP_SEC}
     until [ ${n} -le 0 ]; do
       echo -n "." && n=$((n-1)) && sleep 1
     done
+    echo
   fi
 }
 check_user() {
@@ -81,7 +95,7 @@ check_user() {
     else
       show_message error "${ERR_ROOT_PRIVILEGE_REQUIRED[1]}" && exit ${ERR_ROOT_PRIVILEGE_REQUIRED[0]}
     fi
-    show_message info "\n${WHITE}Hint: Hyper installer need root privilege\n"
+    show_message info "${WHITE}Hint: Hyper installer need root privilege\n"
     ${BASH_C} "echo -n"
   fi
 }
@@ -90,9 +104,13 @@ check_deps() {
   check_deps_platform
   check_deps_distro
   check_deps_docker
-  check_deps_qemu
+  if [ "${SUPPORT_XEN}" == "" ];then
+    check_deps_qemu
+  else
+    check_deps_xen
+  fi
   check_deps_initsystem
-  show_message done " Done\n"
+  show_message done " Done"
 }
 check_deps_platform() {
   ARCH="$(uname -m)"
@@ -158,8 +176,7 @@ check_deps_distro() {
   esac
   echo -n "."
 }
-check_deps_docker() {
-  #docker 1.5+ should be installed and running
+check_deps_docker() { #docker 1.5+ should be installed and running
   if (command_exist docker);then
     set +e
     ${BASH_C} "docker version > /dev/null 2>&1"
@@ -194,8 +211,34 @@ COMMENT
   fi
   echo -n "."
 }
-check_deps_qemu() {
-  #QEMU 2.0+ should be installed
+check_deps_xen() {
+  set +e
+  ${BASH_C} "which xl" >/dev/null 2>&1
+  if [ $? -ne 0 ];then
+    show_message error "${ERR_XEN_NOT_INSTALL[1]}"
+    exit ${ERR_XEN_NOT_INSTALL[0]}
+  else
+    ${BASH_C} "xl info" >/dev/null 2>&1
+    if [ $? -eq 0 ];then
+      XEN_MAJOR=$( ${BASH_C} "xl info" | grep xen_major | awk '{print $3}' )
+      XEN_MINOR=$( ${BASH_C} "xl info" | grep xen_minor | awk '{print $3}' )
+      XEN_VERSION=$( ${BASH_C} "xl info" | grep xen_version | awk '{print $3}' )
+      show_message debug "xen(${XEN_VERSION}) found"
+      if [[ $XEN_MAJOR -ge 4 ]] && [[ $XEN_MINOR -ge 5 ]];then
+        PKG_FILE="hyper${SUPPORT_XEN}-latest${DEV_MODE}.tgz"
+        UNTAR_DIR="hyper-pkg${SUPPORT_XEN}"
+      else
+        show_message error "${ERR_XEN_VER_LOW[1]}"
+        exit ${ERR_XEN_VER_LOW[0]}
+      fi
+    else
+        show_message error "${ERR_XEN_GET_VER_FAILED[1]}"
+        exit ${ERR_XEN_GET_VER_FAILED[0]}
+    fi
+  fi
+  set -e
+}
+check_deps_qemu() { #QEMU 2.0+ should be installed
   if (command_exist qemu-system-x86_64);then
     local QEMU_VER=$(qemu-system-x86_64 --version | awk '{print $4}' | cut -d"," -f1)
     read QMAJOR QMINOR QFIX < <( echo ${QEMU_VER} | awk -F'.' '{print $1,$2,$3 }')
@@ -230,6 +273,7 @@ fetch_hyper_package() {
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
   local USE_WGET=$( echo $(get_curl) | awk -F"|" '{print $1}' )
   local CURL_C=$( echo $(get_curl) | awk -F"|" '{print $2}' )
+  show_message debug "${SRC_URL} => ${TGT_FILE}"
   mkdir -p ${BOOTSTRAP_DIR} && cd ${BOOTSTRAP_DIR}
   if [ -s ${TGT_FILE} ];then
     if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
@@ -271,13 +315,14 @@ fetch_hyper_package() {
       fi
     fi
   fi
-  show_message done " Done\n"
+  ${BASH_C} "cd ${BOOTSTRAP_DIR} && tar xzf ${PKG_FILE}"
+  BOOTSTRAP_DIR="${BOOTSTRAP_DIR}/${UNTAR_DIR}"
+  show_message done " Done"
   set -e
 }
 install_hyper() {
   show_message info "Installing "
-  ${BASH_C} "cd ${BOOTSTRAP_DIR} && tar xzf ${PKG_FILE}"
-  cd ${BOOTSTRAP_DIR}/${UNTAR_DIR}
+  cd ${BOOTSTRAP_DIR}
   ${BASH_C} "./install.sh" 1> /dev/null
   echo -n "."
   if [[ -f /usr/local/bin/hyper ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyper ]] && [[ ! -f /usr/bin/hyperd ]] ;then
@@ -292,7 +337,7 @@ install_hyper() {
     display_support ${ERR_HYPER_NOT_FOUND[0]}
     exit ${ERR_HYPER_NOT_FOUND[0]}
   fi
-  show_message done " Done\n"
+  show_message done " Done"
 }
 install_hyperd_service() {
   local SRC_INIT_FILE=""
@@ -300,13 +345,13 @@ install_hyperd_service() {
   if [ "${INIT_SYSTEM}" == "sysvinit" ];then
     if [ "${LSB_DISTRO}" == "debian" -a "${LSB_CODE}" == "wheezy" ];
     then
-      SRC_INIT_FILE="${BOOTSTRAP_DIR}/${UNTAR_DIR}/service/init.d/hyperd.ubuntu"
+      SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/init.d/hyperd.ubuntu"
     else
-      SRC_INIT_FILE="${BOOTSTRAP_DIR}/${UNTAR_DIR}/service/init.d/hyperd.${LSB_DISTRO}"
+      SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/init.d/hyperd.${LSB_DISTRO}"
     fi
     TGT_INIT_FILE="/etc/init.d/hyperd"
   elif [ "${INIT_SYSTEM}" == "systemd" ];then
-    SRC_INIT_FILE="${BOOTSTRAP_DIR}/${UNTAR_DIR}/service/systemd/hyperd.service"
+    SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/systemd/hyperd.service"
     TGT_INIT_FILE="/lib/systemd/system/hyperd.service"
   fi
   if [ -s ${SRC_INIT_FILE} ];then
@@ -322,7 +367,7 @@ stop_running_hyperd() {
   set +e
   pgrep hyperd >/dev/null 2>&1
   if [ $? -eq 0 ];then
-    echo -e "Stopping running hyperd service before install"
+    echo -e "\nStopping running hyperd service before install"
     if [ "${INIT_SYSTEM}" == "systemd" ]
     then ${BASH_C} "systemctl stop hyperd"
     else ${BASH_C} "service hyperd stop";
@@ -341,7 +386,11 @@ start_hyperd_service() {
   set +e
   pgrep hyperd >/dev/null 2>&1
   if [ $? -eq 0 ];then
-    show_message success "\nhyperd is running."
+    if [ "${SUPPORT_XEN}" == "-xen" ];then
+      show_message success "\nhyperd for xen is running."
+    else
+      show_message success "\nhyperd for kvm/qemu is running."
+    fi
     cat <<COMMENT
 ----------------------------------------------------
 To see how to use hyper cli:
@@ -382,6 +431,7 @@ get_curl() {
 }
 show_message() {
   case "$1" in
+    debug)  if [ "${DEV_MODE}" == "-dev" ];then echo -e "\n[${BLUE}DEBUG${RESET}] : $2"; fi;;
     info)   echo -e -n "\n${WHITE}$2${RESET}" ;;
     warn)   echo -e    "\n[${YELLOW}WARN${RESET}] : $2" ;;
     done|success) echo -e "${LIGHT}${GREEN}$2${RESET}" ;;
