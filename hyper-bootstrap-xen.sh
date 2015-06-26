@@ -59,6 +59,7 @@ ERR_UNKNOWN=99
 main() {
   check_user
   check_deps
+  check_hyper_before_install
   if [[ -f install.sh ]] && [[ -d bin ]] && [[ -d boot ]] && [[ -d service ]];then
     show_message debug "Install from local ${BASE_DIR}/"
     BOOTSTRAP_DIR="${BASE_DIR}"
@@ -66,7 +67,6 @@ main() {
     show_message debug "Install from remote"
     fetch_hyper_package
   fi
-  check_hyper_before_install
   stop_running_hyperd
   install_hyper
   start_hyperd_service
