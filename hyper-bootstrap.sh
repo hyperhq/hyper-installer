@@ -50,6 +50,7 @@ ERR_XEN_GET_VER_FAILED=(30 "Can not get xen version, xen daemon isn't running!")
 ERR_XEN_VER_LOW=(31 "Sorry, hyper only support xen 4.5+")
 ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed, please retry!")
 ERR_INST_PKG_MD5_ERROR=(33 "Checksum of install package error, please retry!")
+ERR_UNTAR_PKG_FAILED=(34 "Untar install package failed!")
 ERR_EXEC_INSTALL_FAILED=(41 "Install hyper failed!")
 ERR_INSTALL_SERVICE_FAILED=(42 "Install hyperd as service failed!")
 ERR_HYPER_NOT_FOUND=(60 "Can not find hyper and hyperd after setup!")
@@ -316,14 +317,21 @@ fetch_hyper_package() {
     fi
   fi
   ${BASH_C} "cd ${BOOTSTRAP_DIR} && tar xzf ${PKG_FILE}"
+  if [ $? -ne 0 ];then
+    show_message error "${ERR_UNTAR_PKG_FAILED[1]}" && exit "${ERR_UNTAR_PKG_FAILED[0]}"
+  fi
   BOOTSTRAP_DIR="${BOOTSTRAP_DIR}/${UNTAR_DIR}"
   show_message done " Done"
   set -e
 }
 install_hyper() {
   show_message info "Installing "
+  set +e
   cd ${BOOTSTRAP_DIR}
-  ${BASH_C} "./install.sh" 1> /dev/null
+  ${BASH_C} "./install.sh"
+  if [ $? -ne 0 ];then
+    show_message error "${ERR_EXEC_INSTALL_FAILED[1]}" && exit "${ERR_EXEC_INSTALL_FAILED[0]}"
+  fi
   echo -n "."
   if [[ -f /usr/local/bin/hyper ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyper ]] && [[ ! -f /usr/bin/hyperd ]] ;then
     ${BASH_C} "ln -s /usr/local/bin/hyper /usr/bin/hyper"
@@ -337,6 +345,7 @@ install_hyper() {
     display_support ${ERR_HYPER_NOT_FOUND[0]}
     exit ${ERR_HYPER_NOT_FOUND[0]}
   fi
+  set -e
   show_message done " Done"
 }
 install_hyperd_service() {
