@@ -328,7 +328,7 @@ install_hyper() {
   show_message info "Installing "
   set +e
   cd ${BOOTSTRAP_DIR}
-  ${BASH_C} "./install.sh"
+  ${BASH_C} "./install.sh" 1>/dev/null
   if [ $? -ne 0 ];then
     show_message error "${ERR_EXEC_INSTALL_FAILED[1]}" && exit "${ERR_EXEC_INSTALL_FAILED[0]}"
   fi
