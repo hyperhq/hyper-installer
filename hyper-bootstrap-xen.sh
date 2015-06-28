@@ -25,7 +25,7 @@ SUPPORT_DISTRO=(debian ubuntu fedora centos)
 UBUNTU_CODE=(trusty utopic vivid)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
-FEDORA_VER=(21 22)
+FEDORA_VER=(20 21 22)
 #Color Constant
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
