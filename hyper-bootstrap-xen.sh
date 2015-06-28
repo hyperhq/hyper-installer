@@ -39,21 +39,21 @@ ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
 ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support (${SUPPORT_DISTRO[@]}) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
-ERR_DOCKER_NOT_INSTALL=(23 "Please install docker 1.5+ first!")
-ERR_DOCKER_LOW_VERSION=(24 "Need Docker version 1.5 at least!")
-ERR_DOCKER_NOT_RUNNING=(25 "Docker daemon isn't running!")
-ERR_DOCKER_GET_VER_FAILED=(26 "Can not get docker version!")
-ERR_QEMU_NOT_INSTALL=(27 "Please install Qemu 2.0+ first!")
-ERR_QEMU_LOW_VERSION=(28 "Need Qemu version 2.0 at least!")
-ERR_XEN_NOT_INSTALL=(29 "Please install xen 4.5+ first!")
-ERR_XEN_GET_VER_FAILED=(30 "Can not get xen version, xen daemon isn't running!")
-ERR_XEN_VER_LOW=(31 "Sorry, hyper only support xen 4.5+")
-ERR_FETCH_INST_PKG_FAILED=(32 "Fetch install package failed, please retry!")
-ERR_INST_PKG_MD5_ERROR=(33 "Checksum of install package error, please retry!")
-ERR_UNTAR_PKG_FAILED=(34 "Untar install package failed!")
-ERR_EXEC_INSTALL_FAILED=(41 "Install hyper failed!")
-ERR_INSTALL_SERVICE_FAILED=(42 "Install hyperd as service failed!")
-ERR_HYPER_NOT_FOUND=(60 "Can not find hyper and hyperd after setup!")
+ERR_DOCKER_NOT_INSTALL=(30 "Please install docker 1.5+ first!")
+ERR_DOCKER_LOW_VERSION=(31 "Need Docker version 1.5 at least!")
+ERR_DOCKER_NOT_RUNNING=(32 "Docker daemon isn't running!")
+ERR_DOCKER_GET_VER_FAILED=(33 "Can not get docker version!")
+ERR_DOCKER_UNSUPPORTED_STORE_DRV=(34 "Only docker storage driver 'aufs' and 'devicemapper' are supported!")
+ERR_QEMU_NOT_INSTALL=(40 "Please install Qemu 2.0+ first!")
+ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
+ERR_XEN_NOT_INSTALL=(50 "Please install xen 4.5+ first!")
+ERR_XEN_GET_VER_FAILED=(51 "Can not get xen version, xen daemon isn't running!")
+ERR_XEN_VER_LOW=(52 "Sorry, hyper only support xen 4.5+")
+ERR_FETCH_INST_PKG_FAILED=(60 "Fetch install package failed, please retry!")
+ERR_INST_PKG_MD5_ERROR=(61 "Checksum of install package error, please retry!")
+ERR_EXEC_INSTALL_FAILED=(70 "Install hyper failed!")
+ERR_INSTALL_SERVICE_FAILED=(71 "Install hyperd as service failed!")
+ERR_HYPER_NOT_FOUND=(72 "Can not find hyper and hyperd after setup!")
 ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
@@ -201,6 +201,10 @@ COMMENT
       show_message error "${ERR_DOCKER_LOW_VERSION[1]} but current is ${DMAJOR}.${DMINOR}, please upgrade docker first!"
       exit ${ERR_DOCKER_LOW_VERSION[0]]}
     fi
+    STORE_DRV=$(${BASH_C} "docker info 2>/dev/null |sed -ne 's/Storage Driver: \(.*\)/\1/p'")
+    if [[ $STORE_DRV != "aufs" ]] && [[ $STORE_DRV != "devicemapper" ]]; then
+        show_message error "${ERR_DOCKER_UNSUPPORTED_STORE_DRV[1]}\n" && exit ${ERR_DOCKER_UNSUPPORTED_STORE_DRV[0]}
+    fi
   else
     show_message error "${ERR_DOCKER_NOT_INSTALL[1]}"
     if [ "${LSB_DISTRO}" == "ubuntu" ];then
@@ -317,9 +321,6 @@ fetch_hyper_package() {
     fi
   fi
   ${BASH_C} "cd ${BOOTSTRAP_DIR} && tar xzf ${PKG_FILE}"
-  if [ $? -ne 0 ];then
-    show_message error "${ERR_UNTAR_PKG_FAILED[1]}" && exit "${ERR_UNTAR_PKG_FAILED[0]}"
-  fi
   BOOTSTRAP_DIR="${BOOTSTRAP_DIR}/${UNTAR_DIR}"
   show_message done " Done"
   set -e
