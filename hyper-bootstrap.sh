@@ -37,7 +37,7 @@ RESET=`tput sgr0`
 #Error Message
 ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please retry use 'sudo' or root user!")
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
-ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support (${SUPPORT_DISTRO[@]}) now!")
+ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
 ERR_DOCKER_NOT_INSTALL=(30 "Please install docker 1.5+ first!")
 ERR_DOCKER_LOW_VERSION=(31 "Need Docker version 1.5 at least!")
@@ -172,7 +172,9 @@ check_deps_distro() {
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
     ;;
-    *) show_message error "${ERR_NOT_SUPPORT_DISTRO[1]}, but your are using '${LSB_DISTRO} ${LSB_VER}(${LSB_CODE})'"
+    *) if [ ! -z ${LSB_DISTRO} ];then echo -e -n "\nCurrent OS is '${LSB_DISTRO} ${LSB_VER}(${LSB_CODE})'";
+       else echo -e -n "\nCan not detect OS type"; fi
+      show_message error "${ERR_NOT_SUPPORT_DISTRO[1]}"
       exit ${ERR_NOT_SUPPORT_DISTRO[0]}
     ;;
   esac
