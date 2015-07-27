@@ -141,6 +141,9 @@ check_deps_distro() {
     elif [ -r /etc/debian_version ];then
       LSB_DISTRO="Debian"
       LSB_VER="$(cat /etc/debian_version)"
+    elif [ -r /etc/centos-release ];then
+      LSB_DISTRO="CentOS"
+      LSB_VER="$(cat /etc/centos-release | cut -d' ' -f3)"
     fi
   fi
   LSB_DISTRO=$(echo "${LSB_DISTRO}" | tr '[:upper:]' '[:lower:]')
