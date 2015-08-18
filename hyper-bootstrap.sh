@@ -373,8 +373,9 @@ install_hyperd_service() {
   local SRC_INIT_FILE=""
   local TGT_INIT_FILE=""
   if [ "${INIT_SYSTEM}" == "sysvinit" ];then
-    if [ "${LSB_DISTRO}" == "debian" -a "${LSB_CODE}" == "wheezy" ];
-    then
+    if [ "${LSB_DISTRO}" == "debian" -a "${LSB_CODE}" == "wheezy" ] ; then
+      SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/init.d/hyperd.ubuntu"
+    elif [ "${LSB_DISTRO}" == "linuxmint" ] ; then
       SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/init.d/hyperd.ubuntu"
     else
       SRC_INIT_FILE="${BOOTSTRAP_DIR}/service/init.d/hyperd.${LSB_DISTRO}"
