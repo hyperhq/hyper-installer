@@ -21,7 +21,8 @@ PKG_FILE="hyper-latest${DEV_MODE}.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ########## Constant ##########
-SUPPORT_DISTRO=(debian ubuntu fedora centos)
+SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
+LINUX_MINT_CODE=(rafaela rebecca qiana)
 UBUNTU_CODE=(trusty utopic vivid)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
@@ -37,7 +38,7 @@ RESET=`tput sgr0`
 #Error Message
 ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please retry use 'sudo' or root user!")
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
-ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos now!")
+ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
 ERR_DOCKER_NOT_INSTALL=(30 "Please install docker 1.5+ first!")
 ERR_DOCKER_LOW_VERSION=(31 "Need Docker version 1.5 at least!")
@@ -154,6 +155,15 @@ check_deps_distro() {
     esac
   fi
   case "${LSB_DISTRO}" in
+    linuxmint)
+      if [ "${LSB_DISTRO}" == "linuxmint" ]
+      then SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
+      fi
+      if (echo "${SUPPORT_CODE_LIST}" | grep -v -w "${LSB_CODE}" &>/dev/null);then
+        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
+        exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
+      fi
+    ;;
     ubuntu|debian)
       if [ "${LSB_DISTRO}" == "ubuntu" ]
       then SUPPORT_CODE_LIST="${UBUNTU_CODE[@]}";
@@ -196,6 +206,7 @@ COMMENT
       exit ${ERR_DOCKER_NOT_RUNNING[0]}
     fi
     local DOCKER_VER=$(${BASH_C} "docker version" 2>/dev/null | sed -ne 's/Server version:[[:space:]]*\([0-9]\{1,\}\)*/\1/p')
+    if [ -z ${DOCKER_VER} ];then local DOCKER_VER=$(${BASH_C} "docker version" 2>/dev/null | grep "Server:" -A1 | sed -ne 's/ Version:[[:space:]]*\([0-9]\{1,\}\)*/\1/p'); fi
     set -e
     read DMAJOR DMINOR DFIX < <( echo ${DOCKER_VER} | awk -F"." '{print $1,$2,$3}')
     if [ -z ${DMAJOR} -o -z ${DMINOR} ];then
