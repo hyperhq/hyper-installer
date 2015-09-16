@@ -40,11 +40,6 @@ ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
 ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
-ERR_DOCKER_NOT_INSTALL=(30 "Please install docker 1.5+ first!")
-ERR_DOCKER_LOW_VERSION=(31 "Need Docker version 1.5 at least!")
-ERR_DOCKER_NOT_RUNNING=(32 "Docker daemon isn't running!")
-ERR_DOCKER_GET_VER_FAILED=(33 "Can not get docker version!")
-ERR_DOCKER_UNSUPPORTED_STORE_DRV=(34 "Only docker storage driver 'aufs' and 'devicemapper' are supported!")
 ERR_QEMU_NOT_INSTALL=(40 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
 ERR_XEN_NOT_INSTALL=(50 "Please install xen 4.5+ first!")
@@ -106,7 +101,6 @@ check_deps() {
   show_message info "Check dependency "
   check_deps_platform
   check_deps_distro
-  check_deps_docker
   if [ "${SUPPORT_XEN}" == "" ];then
     check_deps_qemu
   else
@@ -191,46 +185,6 @@ check_deps_distro() {
       exit ${ERR_NOT_SUPPORT_DISTRO[0]}
     ;;
   esac
-  echo -n "."
-}
-check_deps_docker() { #docker 1.5+ should be installed and running
-  if (command_exist docker);then
-    set +e
-    ${BASH_C} "docker version > /dev/null 2>&1"
-    if [ $? -ne 0 ];then
-      show_message error "${ERR_DOCKER_NOT_RUNNING[1]}\n"
-      cat <<COMMENT
-Please start docker service:
-    sudo service docker start
-COMMENT
-      exit ${ERR_DOCKER_NOT_RUNNING[0]}
-    fi
-    local DOCKER_VER=$(${BASH_C} "docker version" 2>/dev/null | sed -ne 's/Server version:[[:space:]]*\([0-9]\{1,\}\)*/\1/p')
-    if [ -z ${DOCKER_VER} ];then local DOCKER_VER=$(${BASH_C} "docker version" 2>/dev/null | grep "Server:" -A1 | sed -ne 's/ Version:[[:space:]]*\([0-9]\{1,\}\)*/\1/p'); fi
-    set -e
-    read DMAJOR DMINOR DFIX < <( echo ${DOCKER_VER} | awk -F"." '{print $1,$2,$3}')
-    if [ -z ${DMAJOR} -o -z ${DMINOR} ];then
-      show_message error "${ERR_DOCKER_GET_VER_FAILED[1]}"
-      display_support ${ERR_DOCKER_GET_VER_FAILED[0]}
-      exit ${ERR_DOCKER_GET_VER_FAILED[0]}
-    fi
-    if [ ${DMAJOR} -lt 1 ] || [ ${DMAJOR} -eq 1 -a ${DMINOR} -lt 5 ];then
-      show_message error "${ERR_DOCKER_LOW_VERSION[1]} but current is ${DMAJOR}.${DMINOR}, please upgrade docker first!"
-      exit ${ERR_DOCKER_LOW_VERSION[0]]}
-    fi
-    STORE_DRV=$(${BASH_C} "docker info 2>/dev/null |sed -ne 's/Storage Driver: \(.*\)/\1/p'")
-    if [[ $STORE_DRV != "aufs" ]] && [[ $STORE_DRV != "devicemapper" ]]; then
-        show_message error "${ERR_DOCKER_UNSUPPORTED_STORE_DRV[1]}\n" && exit ${ERR_DOCKER_UNSUPPORTED_STORE_DRV[0]}
-    fi
-  else
-    show_message error "${ERR_DOCKER_NOT_INSTALL[1]}"
-    if [ "${LSB_DISTRO}" == "ubuntu" ];then
-      _OS="linux"
-    fi
-    echo -e "\nInstructions for installing Docker on ${LSB_DISTRO}${_OS}"
-    echo -e "    https://docs.docker.com/installation/${LSB_DISTRO}${_OS}/\n"
-    exit ${ERR_DOCKER_NOT_INSTALL[0]}
-  fi
   echo -n "."
 }
 check_deps_xen() {
