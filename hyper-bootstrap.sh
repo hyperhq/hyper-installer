@@ -7,17 +7,14 @@
 # install from local
 #    ./bootstrap.sh
 BASE_DIR=$(cd "$(dirname "$0")"; pwd); cd ${BASE_DIR}
-DEV_MODE=""; SLEEP_SEC=10; SUPPORT_XEN="";
-if [ $# -eq 1 -a "$1" == "--dev" ];then
-  DEV_MODE="-dev"; SLEEP_SEC=3; echo "[test mode]"
-fi
+SLEEP_SEC=10
 set -e
 ########## Variable ##########
 CURRENT_USER="$(id -un 2>/dev/null || true)"
 BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
 ########## Parameter ##########
-S3_URL="http://hyper-install${DEV_MODE}.s3.amazonaws.com"
-PKG_FILE="hyper-latest${DEV_MODE}.tgz"
+S3_URL="http://hyper-install.s3.amazonaws.com"
+PKG_FILE="hyper-latest.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ########## Constant ##########
@@ -40,6 +37,7 @@ ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
 ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
+ERR_NO_HYPERVISOR=(39 "You should have either Xen 4.5+ or Qemu 2.0+ installed to run hyper")
 ERR_QEMU_NOT_INSTALL=(40 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
 ERR_XEN_NOT_INSTALL=(50 "Please install xen 4.5+ first!")
@@ -101,11 +99,7 @@ check_deps() {
   show_message info "Check dependency "
   check_deps_platform
   check_deps_distro
-  if [ "${SUPPORT_XEN}" == "" ];then
-    check_deps_qemu
-  else
-    check_deps_xen
-  fi
+  check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
   check_deps_initsystem
   show_message done " Done"
 }
@@ -191,8 +185,8 @@ check_deps_xen() {
   set +e
   ${BASH_C} "which xl" >/dev/null 2>&1
   if [ $? -ne 0 ];then
-    show_message error "${ERR_XEN_NOT_INSTALL[1]}"
-    exit ${ERR_XEN_NOT_INSTALL[0]}
+    show_message info "${ERR_XEN_NOT_INSTALL[1]}"
+    return ${ERR_XEN_NOT_INSTALL[0]}
   else
     ${BASH_C} "xl info" >/dev/null 2>&1
     if [ $? -eq 0 ];then
@@ -201,30 +195,32 @@ check_deps_xen() {
       XEN_VERSION=$( ${BASH_C} "xl info" | grep xen_version | awk '{print $3}' )
       show_message debug "xen(${XEN_VERSION}) found"
       if [[ $XEN_MAJOR -ge 4 ]] && [[ $XEN_MINOR -ge 5 ]];then
-        PKG_FILE="hyper${SUPPORT_XEN}-latest${DEV_MODE}.tgz"
-        UNTAR_DIR="hyper-pkg${SUPPORT_XEN}"
+        PKG_FILE="hyper-latest.tgz"
+        UNTAR_DIR="hyper-pkg"
       else
-        show_message error "${ERR_XEN_VER_LOW[1]}"
-        exit ${ERR_XEN_VER_LOW[0]}
+        show_message info "${ERR_XEN_VER_LOW[1]}"
+        return ${ERR_XEN_VER_LOW[0]}
       fi
     else
-        show_message error "${ERR_XEN_GET_VER_FAILED[1]}"
-        exit ${ERR_XEN_GET_VER_FAILED[0]}
+        show_message info "${ERR_XEN_GET_VER_FAILED[1]}"
+        return ${ERR_XEN_GET_VER_FAILED[0]}
     fi
   fi
   set -e
+  return 0
 }
 check_deps_qemu() { #QEMU 2.0+ should be installed
   if (command_exist qemu-system-x86_64);then
     local QEMU_VER=$(qemu-system-x86_64 --version | awk '{print $4}' | cut -d"," -f1)
     read QMAJOR QMINOR QFIX < <( echo ${QEMU_VER} | awk -F'.' '{print $1,$2,$3 }')
     if [ ${QMAJOR} -lt 2 ] ;then
-      show_message error "${ERR_QEMU_LOW_VERSION[1]}\n" && exit ${ERR_QEMU_LOW_VERSION[0]}
+      show_message info "${ERR_QEMU_LOW_VERSION[1]}\n" && return ${ERR_QEMU_LOW_VERSION[0]}
     fi
   else
-    show_message error "${ERR_QEMU_NOT_INSTALL[1]}\n" && exit ${ERR_QEMU_NOT_INSTALL[0]}
+    show_message info "${ERR_QEMU_NOT_INSTALL[1]}\n" && return ${ERR_QEMU_NOT_INSTALL[0]}
   fi
   echo -n "."
+  return 0
 }
 check_deps_initsystem() {
   if [ "${LSB_DISTRO}" == "ubuntu" -a "${LSB_CODE}" == "utopic" ];then
@@ -239,11 +235,11 @@ check_deps_initsystem() {
 fetch_hyper_package() {
   show_message info "Fetch checksum and package...\n"
   set +e
-  ${BASH_C} "ping -c 3 -W 2 hyper-install${DEV_MODE}.s3.amazonaws.com >/dev/null 2>&1"
+  ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
-    S3_URL="http://mirror-hyper-install${DEV_MODE}.s3.amazonaws.com"
+    S3_URL="http://mirror-hyper-install.s3.amazonaws.com"
   else
-    S3_URL="http://hyper-install${DEV_MODE}.s3.amazonaws.com"
+    S3_URL="http://hyper-install.s3.amazonaws.com"
   fi
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
@@ -252,7 +248,7 @@ fetch_hyper_package() {
   show_message debug "${SRC_URL} => ${TGT_FILE}"
   mkdir -p ${BOOTSTRAP_DIR} && cd ${BOOTSTRAP_DIR}
   if [ -s ${TGT_FILE} ];then
-    if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
+    if [ "${USE_WGET}" == "true" ];then
       ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
     else
       ${CURL_C} ${TGT_FILE}.md5 ${SRC_URL}.md5
@@ -274,7 +270,7 @@ fetch_hyper_package() {
   fi
   if [ ! -f ${TGT_FILE} ];then
     \rm -rf ${TGT_FILE}.md5 >/dev/null 2>&1
-    if [ "${USE_WGET}" == "true" -a "${DEV_MODE}" == "" ];then
+    if [ "${USE_WGET}" == "true" ];then
       ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
       ${CURL_C} ${SRC_URL} 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
     else
@@ -371,11 +367,7 @@ start_hyperd_service() {
   set +e
   pgrep hyperd >/dev/null 2>&1
   if [ $? -eq 0 ];then
-    if [ "${SUPPORT_XEN}" == "-xen" ];then
-      show_message success "\nhyperd for xen is running."
-    else
-      show_message success "\nhyperd for kvm/qemu is running."
-    fi
+    show_message success "\nhyperd is running."
     cat <<COMMENT
 ----------------------------------------------------
 To see how to use hyper cli:
@@ -407,16 +399,16 @@ command_exist() {
 get_curl() {
   CURL_C=""; USE_WGET="false"
   if (command_exist curl);then
-    if [ "${DEV_MODE}" != "" ];then CURL_C='curl -SL -o '; else CURL_C='curl -O --progress-bar -o '; fi
+    CURL_C='curl -SL -o '
   elif (command_exist wget);then
     USE_WGET="true"
-    if [ "${DEV_MODE}" != "" ];then CURL_C='wget -O '; else CURL_C='wget --progress=dot '; fi
+    CURL_C='wget -O '
   fi
   echo "${USE_WGET}|${CURL_C}"
 }
 show_message() {
   case "$1" in
-    debug)  if [ "${DEV_MODE}" == "-dev" ];then echo -e "\n[${BLUE}DEBUG${RESET}] : $2"; fi;;
+    debug)  echo -e "\n[${BLUE}DEBUG${RESET}] : $2";;
     info)   echo -e -n "\n${WHITE}$2${RESET}" ;;
     warn)   echo -e    "\n[${YELLOW}WARN${RESET}] : $2" ;;
     done|success) echo -e "${LIGHT}${GREEN}$2${RESET}" ;;
