@@ -61,7 +61,7 @@ main() {
     show_message debug "Install from local ${BASE_DIR}/"
     BOOTSTRAP_DIR="${BASE_DIR}"
   else
-    show_message debug "Install from remote"
+    show_message info "Start fetching hyper package"
     fetch_hyper_package
   fi
   stop_running_hyperd
@@ -90,7 +90,7 @@ check_user() {
     if (command_exist sudo);then
       BASH_C="sudo -E bash -c"
     else
-      show_message error "${ERR_ROOT_PRIVILEGE_REQUIRED[1]}" && exit ${ERR_ROOT_PRIVILEGE_REQUIRED[0]}
+      show_message error "${ERR_ROOT_PRIVILEGE_REQUIRED[@]}"
     fi
     show_message info "${WHITE}Hint: Hyper installer need root privilege\n"
     ${BASH_C} "echo -n"
@@ -102,12 +102,12 @@ check_deps() {
   check_deps_distro
   check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
   check_initsystem
-  show_message done " Done"
+  show_message success " Done!"
 }
 check_deps_platform() {
   ARCH="$(uname -m)"
   if [ "${ARCH}" != "x86_64" ];then
-    show_message error "${ERR_NOT_SUPPORT_PLATFORM[1]}" && exit ${ERR_NOT_SUPPORT_PLATFORM[0]}
+    show_message error "${ERR_NOT_SUPPORT_PLATFORM[@]}"
   fi
   echo -n "."
 }
@@ -157,8 +157,8 @@ check_deps_distro() {
       else SUPPORT_CODE_LIST="${DEBIAN_CODE[@]}";
       fi
       if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
-        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
-        exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
+        error_list=(${ERR_NOT_SUPPORT_DISTRO_VERSION[0]} "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})")
+        show_message error ${error_list}
       fi
     ;;
     centos|fedora)
@@ -168,14 +168,13 @@ check_deps_distro() {
       else SUPPORT_VER_LIST="${FEDORA_VER[@]}";
       fi
       if (echo "${SUPPORT_VER_LIST}" | grep -qvw "${CMAJOR}");then
-        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_VER_LIST} ), but current is ${LSB_VER}"
-        exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
+        error_list=(${ERR_NOT_SUPPORT_DISTRO_VERSION[0]} "Hyper support ${LSB_DISTRO}( ${SUPPORT_VER_LIST} ), but current is ${LSB_VER}")
+        show_message error ${error_list}
       fi
     ;;
     *) if [ ! -z ${LSB_DISTRO} ];then echo -e -n "\nCurrent OS is '${LSB_DISTRO} ${LSB_VER}(${LSB_CODE})'";
        else echo -e -n "\nCan not detect OS type"; fi
-      show_message error "${ERR_NOT_SUPPORT_DISTRO[1]}"
-      exit ${ERR_NOT_SUPPORT_DISTRO[0]}
+      show_message error "${ERR_NOT_SUPPORT_DISTRO[@]}"
     ;;
   esac
   echo -n "."
@@ -275,30 +274,30 @@ fetch_hyper_package() {
       ${CURL_C} ${TGT_FILE} ${SRC_URL}
     fi
     if [ $? -ne 0 ];then
-      show_message error "${ERR_FETCH_INST_PKG_FAILED[1]}" && exit "${ERR_FETCH_INST_PKG_FAILED[0]}"
+      show_message error "${ERR_FETCH_INST_PKG_FAILED[@]}"
     else
       MD5_REMOTE=$(cat ${TGT_FILE}.md5 | awk '{print $1}'); MD5_LOCAL=$(md5sum ${TGT_FILE} | awk '{print $1}')
       if [ ${MD5_REMOTE} != ${MD5_LOCAL} ];then
         echo "required checksum: ${MD5_REMOTE}, but downloaded package is ${MD5_LOCAL}"
-        show_message error "${ERR_INST_PKG_MD5_ERROR[1]}" && exit "${ERR_INST_PKG_MD5_ERROR[0]}"
+        show_message error "${ERR_INST_PKG_MD5_ERROR[@]}"
       fi
     fi
   fi
   ${BASH_C} "cd ${BOOTSTRAP_DIR} && tar xzf ${PKG_FILE}"
   if [ $? -ne 0 ];then
-    show_message error "${ERR_UNTAR_PKG_FAILED[1]}" && exit "${ERR_UNTAR_PKG_FAILED[0]}"
+    show_message error "${ERR_UNTAR_PKG_FAILED[@]}"
   fi
   BOOTSTRAP_DIR="${BOOTSTRAP_DIR}/${UNTAR_DIR}"
-  show_message done " Done"
+  show_message success " success!"
   set -e
 }
 install_hyper() {
-  show_message info "Installing "
+  show_message info "Installing hyper and hyperd"
   set +e
   cd ${BOOTSTRAP_DIR}
   ${BASH_C} "./install.sh" 1>/dev/null
   if [ $? -ne 0 ];then
-    show_message error "${ERR_EXEC_INSTALL_FAILED[1]}" && exit "${ERR_EXEC_INSTALL_FAILED[0]}"
+    show_message error "${ERR_EXEC_INSTALL_FAILED[@]}"
   fi
   echo -n "."
   if [[ -f /usr/local/bin/hyper ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyper ]] && [[ ! -f /usr/bin/hyperd ]] ;then
@@ -309,12 +308,10 @@ install_hyper() {
     install_hyperd_service
     echo -n "."
   else
-    show_message error "${ERR_HYPER_NOT_FOUND[1]}"
-    display_support ${ERR_HYPER_NOT_FOUND[0]}
-    exit ${ERR_HYPER_NOT_FOUND[0]}
+    show_message fatal "${ERR_HYPER_NOT_FOUND[0]}"
   fi
   set -e
-  show_message done " Done"
+  show_message success " success!"
 }
 install_hyperd_service() {
   local SRC_INIT_FILE=""
@@ -336,9 +333,7 @@ install_hyperd_service() {
     ${BASH_C} "cp ${SRC_INIT_FILE} ${TGT_INIT_FILE}"
     ${BASH_C} "chmod +x ${TGT_INIT_FILE}"
   else
-    show_message error "${ERR_INSTALL_SERVICE_FAILED[1]}"
-    display_support ${ERR_INSTALL_SERVICE_FAILED[1]}
-    exit ${ERR_INSTALL_SERVICE_FAILED[0]}
+    show_message fatal "${ERR_INSTALL_SERVICE_FAILED[0]}"
   fi
 }
 stop_running_hyperd() {
@@ -384,12 +379,6 @@ COMMENT
   fi
   set -e
 }
-display_support() {
-  echo "Sorry, we are suffering from some technical issue($1), please contact ${SUPPORT_EMAIL}"
-  if [ $# -eq 0 ];then exit ${ERR_UNKNOWN}
-  else exit $1
-  fi
-}
 command_exist() {
   type "$@" > /dev/null 2>&1
 }
@@ -405,11 +394,22 @@ get_curl() {
 }
 show_message() {
   case "$1" in
-    debug)  echo -e "\n[${BLUE}DEBUG${RESET}] : $2";;
-    info)   echo -e -n "\n${WHITE}$2${RESET}" ;;
-    warn)   echo -e    "\n[${YELLOW}WARN${RESET}] : $2" ;;
-    done|success) echo -e "${LIGHT}${GREEN}$2${RESET}" ;;
-    error|failed) echo -e "\n[${RED}ERROR${RESET}] : $2" ;;
+    debug)        echo -e    "\n [${BLUE}DEBUG${RESET}] : $2";;
+    info)         echo -e -n "\n ${WHITE}$2${RESET}" ;;
+    warn)         echo -e    "\n [${YELLOW}WARN${RESET}] : $2" ;;
+    success)      echo -e    "${LIGHT}${GREEN}$2${RESET}" ;;
+    fatal)
+        echo -e    "\n [${RED}FATAL${RESET}] : Sorry, we are suffering from some technical issue($2), please contact ${SUPPORT_EMAIL}"
+        exit $2
+        ;;
+    error|failed)
+        shift  # remove ``error'' from param
+        exit_code=$1
+        shift
+        error_message=$@
+        echo -e    "\n [${RED}ERROR${RESET}] : ${error_message}"
+        exit ${exit_code}
+        ;;
   esac
 }
 #################
