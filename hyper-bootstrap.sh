@@ -25,6 +25,7 @@ DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22)
 #Color Constant
+[ ! -z ${TERM} ] || TERM="xterm"  # tput would complain without $TERM environ
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 YELLOW=`tput setaf 3`
@@ -100,7 +101,7 @@ check_deps() {
   check_deps_platform
   check_deps_distro
   check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
-  check_deps_initsystem
+  check_initsystem
   show_message done " Done"
 }
 check_deps_platform() {
@@ -144,9 +145,7 @@ check_deps_distro() {
   fi
   case "${LSB_DISTRO}" in
     linuxmint)
-      if [ "${LSB_DISTRO}" == "linuxmint" ]
-      then SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
-      fi
+      SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
       if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
         show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
@@ -222,10 +221,8 @@ check_deps_qemu() { #QEMU 2.0+ should be installed
   echo -n "."
   return 0
 }
-check_deps_initsystem() {
-  if [ "${LSB_DISTRO}" == "ubuntu" -a "${LSB_CODE}" == "utopic" ];then
-    INIT_SYSTEM="sysvinit"
-  elif (command_exist systemctl);then
+check_initsystem() {
+  if (command_exist systemctl);then
     INIT_SYSTEM="systemd"
   else
     INIT_SYSTEM="sysvinit"
