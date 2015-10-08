@@ -7,4 +7,4 @@ RUN chmod +x /srv/hyper-bootstrap.sh
 EXPOSE 80
 
 WORKDIR /srv
-ENTRYPOINT ["/srv/hyper-bootstrap.sh"]
+RUN /srv/hyper-bootstrap.sh
