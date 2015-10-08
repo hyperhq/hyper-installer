@@ -1,0 +1,7 @@
+FROM ubuntu:14.04
+
+COPY . /srv
+RUN chmod +x hyper-bootstrap.sh
+
+WORKSPACE /srv
+ENTRYPOINT ["hyper-bootstrap.sh"]
