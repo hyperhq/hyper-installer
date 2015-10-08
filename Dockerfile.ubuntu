@@ -8,3 +8,5 @@ EXPOSE 80
 
 WORKDIR /srv
 RUN /srv/hyper-bootstrap.sh
+CMD ["pgrep", "hyperd"]
+CMD ["hyper", "info"]
