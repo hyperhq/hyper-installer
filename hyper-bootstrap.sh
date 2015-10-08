@@ -144,9 +144,7 @@ check_deps_distro() {
   fi
   case "${LSB_DISTRO}" in
     linuxmint)
-      if [ "${LSB_DISTRO}" == "linuxmint" ]
-      then SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
-      fi
+      SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
       if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
         show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
