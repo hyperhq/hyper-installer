@@ -147,7 +147,7 @@ check_deps_distro() {
       if [ "${LSB_DISTRO}" == "linuxmint" ]
       then SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
       fi
-      if (echo "${SUPPORT_CODE_LIST}" | grep -v -w "${LSB_CODE}" &>/dev/null);then
+      if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
         show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
@@ -157,7 +157,7 @@ check_deps_distro() {
       then SUPPORT_CODE_LIST="${UBUNTU_CODE[@]}";
       else SUPPORT_CODE_LIST="${DEBIAN_CODE[@]}";
       fi
-      if (echo "${SUPPORT_CODE_LIST}" | grep -v -w "${LSB_CODE}" &>/dev/null);then
+      if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
         show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
@@ -168,7 +168,7 @@ check_deps_distro() {
       then SUPPORT_VER_LIST="${CENTOS_VER[@]}";
       else SUPPORT_VER_LIST="${FEDORA_VER[@]}";
       fi
-      if (echo "${SUPPORT_VER_LIST}" | grep -v -w "${CMAJOR}" &>/dev/null);then
+      if (echo "${SUPPORT_VER_LIST}" | grep -qvw "${CMAJOR}");then
         show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_VER_LIST} ), but current is ${LSB_VER}"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
