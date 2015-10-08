@@ -3,5 +3,5 @@ FROM ubuntu:14.04
 COPY . /srv
 RUN chmod +x /srv/hyper-bootstrap.sh
 
-WORKSPACE /srv
+WORKDIR /srv
 ENTRYPOINT ["hyper-bootstrap.sh"]
