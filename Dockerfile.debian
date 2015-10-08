@@ -1,0 +1,12 @@
+FROM debian:jessie
+
+COPY . /srv
+RUN chmod +x /srv/hyper-bootstrap.sh
+
+# MAGIC for daocloud
+EXPOSE 80
+
+WORKDIR /srv
+RUN bash -x /srv/hyper-bootstrap.sh
+CMD ["pgrep", "hyperd"]
+CMD ["hyper", "info"]
