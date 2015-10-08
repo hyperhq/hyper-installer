@@ -1,4 +1,4 @@
-FROM ubuntu:14.04
+FROM centos
 
 COPY . /srv
 RUN chmod +x /srv/hyper-bootstrap.sh
