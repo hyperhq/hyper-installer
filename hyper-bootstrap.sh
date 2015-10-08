@@ -100,7 +100,7 @@ check_deps() {
   check_deps_platform
   check_deps_distro
   check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
-  check_deps_initsystem
+  check_initsystem
   show_message done " Done"
 }
 check_deps_platform() {
@@ -222,10 +222,8 @@ check_deps_qemu() { #QEMU 2.0+ should be installed
   echo -n "."
   return 0
 }
-check_deps_initsystem() {
-  if [ "${LSB_DISTRO}" == "ubuntu" -a "${LSB_CODE}" == "utopic" ];then
-    INIT_SYSTEM="sysvinit"
-  elif (command_exist systemctl);then
+check_initsystem() {
+  if (command_exist systemctl);then
     INIT_SYSTEM="systemd"
   else
     INIT_SYSTEM="sysvinit"
