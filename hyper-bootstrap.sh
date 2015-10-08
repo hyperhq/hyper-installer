@@ -25,6 +25,7 @@ DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22)
 #Color Constant
+[ ! -z ${TERM} ] || TERM="xterm"  # tput would complain without $TERM environ
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 YELLOW=`tput setaf 3`
