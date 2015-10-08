@@ -1,7 +1,7 @@
 FROM centos
 
 COPY . /srv
-RUN bash -xchmod +x /srv/hyper-bootstrap.sh
+RUN chmod +x /srv/hyper-bootstrap.sh
 
 # MAGIC for daocloud
 EXPOSE 80
