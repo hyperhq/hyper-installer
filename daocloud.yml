@@ -1,0 +1,9 @@
+image: daocloud/ci-python:2.7
+env:
+    - PASS = "Y"
+install:
+    - echo pass
+before_script:
+    - echo pass
+script:
+    - echo pass
