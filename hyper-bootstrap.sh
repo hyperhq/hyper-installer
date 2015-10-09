@@ -25,7 +25,15 @@ DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22)
 #Color Constant
-[ ! -z ${TERM} ] || TERM="xterm"  # tput would complain without $TERM environ
+# reset virables
+RED=''
+GREEN=''
+YELLOW=''
+BLUE=''
+WHITE=''
+LIGHT=''
+RESET=''
+[ -z ${TERM} ] || {
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
 YELLOW=`tput setaf 3`
@@ -33,6 +41,7 @@ BLUE=`tput setaf 4`
 WHITE=`tput setaf 7`
 LIGHT=`tput bold `
 RESET=`tput sgr0`
+}
 #Error Message
 ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please retry use 'sudo' or root user!")
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
