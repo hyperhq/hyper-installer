@@ -20,7 +20,7 @@ SUPPORT_EMAIL="support@hyper.sh"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
-UBUNTU_CODE=(trusty utopic vivid)
+UBUNTU_CODE=(trusty utopic vivid wily)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22)
@@ -99,7 +99,7 @@ check_deps() {
   show_message info "Check dependency "
   check_deps_platform
   check_deps_distro
-  check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
+  check_deps_qemu || check_deps_xen || exit ${ERR_NO_HYPERVISOR[0]}
   check_deps_initsystem
   show_message done " Done"
 }
