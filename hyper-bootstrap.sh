@@ -37,6 +37,7 @@ ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please
 ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
 ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
+ERR_NOT_SUPPORT_VIRT_METHOD=(23 "Sorry, Hyper cannot run in virtualbox machine!")
 ERR_NO_HYPERVISOR=(39 "You should have either Xen 4.5+ or Qemu 2.0+ installed to run hyper")
 ERR_QEMU_NOT_INSTALL=(40 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
@@ -99,6 +100,7 @@ check_deps() {
   show_message info "Check dependency "
   check_deps_platform
   check_deps_distro
+  check_deps_virt_method
   check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
   check_deps_initsystem
   show_message done " Done"
@@ -179,6 +181,13 @@ check_deps_distro() {
       exit ${ERR_NOT_SUPPORT_DISTRO[0]}
     ;;
   esac
+  echo -n "."
+}
+check_deps_virt_method() {
+  VIRT_VB=$(dmesg | grep VirtualBox)
+  if [ "${VIRT_VB}" != "" ]; then
+    show_message error "${ERR_NOT_SUPPORT_VIRT_METHOD[1]}" && exit ${ERR_NOT_SUPPORT_VIRT_METHOD[0]}
+  fi
   echo -n "."
 }
 check_deps_xen() {
