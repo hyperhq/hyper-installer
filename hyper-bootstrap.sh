@@ -12,11 +12,18 @@ set -e
 ########## Variable ##########
 CURRENT_USER="$(id -un 2>/dev/null || true)"
 BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
+BASH_C="bash -c"
 ########## Parameter ##########
 S3_URL="http://hyper-install.s3.amazonaws.com"
 PKG_FILE="hyper-latest.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
+############ RPM ##############
+CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-2.el7.centos.x86_64"
+CENTOS7_HYPERSTART="hyperstart-0.5-1.el7.centos.x86_64"
+CENTOS7_HYPER="hyper-0.5-1.el7.centos.x86_64"
+FC23_HYPERSTART="hyperstart-0.5-1.fc23.x86_64"
+FC23_HYPER="hyper-0.5-1.fc23.x86_64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
@@ -49,22 +56,31 @@ ERR_UNTAR_PKG_FAILED=(62 "Untar install package failed!")
 ERR_EXEC_INSTALL_FAILED=(70 "Install hyper failed!")
 ERR_INSTALL_SERVICE_FAILED=(71 "Install hyperd as service failed!")
 ERR_HYPER_NOT_FOUND=(72 "Can not find hyper and hyperd after setup!")
+ERR_HYPER_NO_NEW_VERSION=(80 "You are using the newest hyper\n")
 ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
 main() {
   check_user
-  check_deps
-  check_hyper_before_install
-  if [[ -f install.sh ]] && [[ -d bin ]] && [[ -d boot ]] && [[ -d service ]];then
-    show_message debug "Install from local ${BASE_DIR}/"
-    BOOTSTRAP_DIR="${BASE_DIR}"
+  check_os_platform
+  check_os_distro
+  if [[ "${LSB_DISTRO}" == "centos" ]] && [[ "${CMAJOR}" == "7" ]];then
+    install_from_rpm "centos7"
+  elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "23" ]];then
+    install_from_rpm "fedora23"
   else
-    show_message debug "Install from remote"
-    fetch_hyper_package
+    check_deps
+    check_hyper_before_install
+    if [[ -f install.sh ]] && [[ -d bin ]] && [[ -d boot ]] && [[ -d service ]];then
+      show_message debug "Install from local ${BASE_DIR}/"
+      BOOTSTRAP_DIR="${BASE_DIR}"
+    else
+      show_message debug "Install from remote"
+      fetch_hyper_package
+    fi
+    stop_running_hyperd
+    install_hyper
   fi
-  stop_running_hyperd
-  install_hyper
   start_hyperd_service
   exit 0
 }
@@ -84,7 +100,6 @@ COMMENT
   fi
 }
 check_user() {
-  BASH_C="bash -c"
   if [ "${CURRENT_USER}" != "root" ];then
     if (command_exist sudo);then
       BASH_C="sudo -E bash -c"
@@ -97,20 +112,17 @@ check_user() {
 }
 check_deps() {
   show_message info "Check dependency "
-  check_deps_platform
-  check_deps_distro
   check_deps_qemu || check_deps_xen || exit ${${ERR_NO_HYPERVISOR[0]}}
   check_deps_initsystem
   show_message done " Done"
 }
-check_deps_platform() {
+check_os_platform() {
   ARCH="$(uname -m)"
   if [ "${ARCH}" != "x86_64" ];then
     show_message error "${ERR_NOT_SUPPORT_PLATFORM[1]}" && exit ${ERR_NOT_SUPPORT_PLATFORM[0]}
   fi
-  echo -n "."
 }
-check_deps_distro() {
+check_os_distro() {
   LSB_DISTRO=""; LSB_VER=""; LSB_CODE=""
   if (command_exist lsb_release);then
     LSB_DISTRO="$(lsb_release -si)"
@@ -179,7 +191,6 @@ check_deps_distro() {
       exit ${ERR_NOT_SUPPORT_DISTRO[0]}
     ;;
   esac
-  echo -n "."
 }
 check_deps_xen() {
   set +e
@@ -385,6 +396,44 @@ Please try to start hyperd by manual:
   sudo service hyperd status
 COMMENT
   fi
+  set -e
+}
+install_from_rpm(){
+  show_message info "Fetch rpm package for centos7...\n"
+  set +e
+  ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
+  if [ $? -ne 0 ];then
+    S3_URL="http://mirror-hyper-install.s3.amazonaws.com"
+  else
+    S3_URL="http://hyper-install.s3.amazonaws.com"
+  fi
+  case "$1" in
+    centos7)
+      rpm -qa | grep ${CENTOS7_HYPER} > /dev/null 2>&1
+      if [ $? -eq 0 ];then
+        show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
+      fi
+      if (command_exist hyper hyperd);then
+        _ACT="update"
+      else
+        _ACT="install"
+      fi
+      ${BASH_C} "yum ${_ACT} ${S3_URL}/${CENTOS7_QEMU_HYPER}.rpm ${S3_URL}/${CENTOS7_HYPERSTART}.rpm ${S3_URL}/${CENTOS7_HYPER}.rpm"
+      ;;
+    fedora23)
+      rpm -qa | grep ${FC23_HYPER} > /dev/null 2>&1
+      if [ $? -eq 0 ];then
+        show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
+      fi
+      if (command_exist hyper hyperd);then
+        _ACT="update"
+      else
+        _ACT="install"
+      fi
+      ${BASH_C} "yum ${_ACT} ${S3_URL}/${FC23_HYPERSTART}.rpm ${S3_URL}/${FC23_HYPER}.rpm"
+      ;;
+    *) show_message error "rpm install support centos7 & fedora23 only"; exit 1;;
+  esac
   set -e
 }
 display_support() {
