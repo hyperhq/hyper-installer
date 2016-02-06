@@ -430,7 +430,7 @@ install_from_rpm(){
       else
         _ACT="install"
       fi
-      ${BASH_C} "yum ${_ACT} ${S3_URL}/${FC23_HYPERSTART}.rpm ${S3_URL}/${FC23_HYPER}.rpm"
+      ${BASH_C} "dnf ${_ACT} ${S3_URL}/${FC23_HYPERSTART}.rpm ${S3_URL}/${FC23_HYPER}.rpm"
       ;;
     *) show_message error "rpm install support centos7 & fedora23 only"; exit 1;;
   esac
