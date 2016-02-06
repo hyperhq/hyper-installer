@@ -30,7 +30,7 @@ LINUX_MINT_CODE=(rafaela rebecca qiana)
 UBUNTU_CODE=(trusty utopic vivid wily)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
-FEDORA_VER=(20 21 22)
+FEDORA_VER=(20 21 22 23)
 #Color Constant
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -399,7 +399,7 @@ COMMENT
   set -e
 }
 install_from_rpm(){
-  show_message info "Fetch rpm package for centos7...\n"
+  show_message info "Fetch rpm package for $1...\n"
   set +e
   ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
