@@ -418,7 +418,7 @@ install_from_rpm(){
       else
         _ACT="install"
       fi
-      ${BASH_C} "yum ${_ACT} ${S3_URL}/${CENTOS7_QEMU_HYPER}.rpm ${S3_URL}/${CENTOS7_HYPERSTART}.rpm ${S3_URL}/${CENTOS7_HYPER}.rpm"
+      ${BASH_C} "yum ${_ACT} -y ${S3_URL}/${CENTOS7_QEMU_HYPER}.rpm ${S3_URL}/${CENTOS7_HYPERSTART}.rpm ${S3_URL}/${CENTOS7_HYPER}.rpm"
       ;;
     fedora23)
       rpm -qa | grep ${FC23_HYPER} > /dev/null 2>&1
