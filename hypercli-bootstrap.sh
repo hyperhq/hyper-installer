@@ -2,10 +2,10 @@
 # Description:  This script is used to install hyper cli and hyperd
 # Usage:
 #  install from remote
-#    wget -qO- https://cli.hyper.sh/install | bash
-#    curl -sSL https://cli.hyper.sh/install | bash
+#    wget -qO- https://hyper.sh/install | bash
+#    curl -sSL https://hyper.sh/install | bash
 # install from local
-#    ./bootstrap.sh
+#    ./hypercli-bootstrap.sh
 WORK_DIR=$(pwd)
 BASE_DIR=$(cd "$(dirname "$0")"; pwd); cd ${BASE_DIR}
 SLEEP_SEC=10
@@ -63,6 +63,7 @@ show_message() {
 }
 ########## Main Function Definition ##########
 main() {
+  show_message info "Welcome to Install hyper client for HYPER_...\n"
   check_os_type
   fetch_hypercli
   extract_hypercli
@@ -141,7 +142,7 @@ fetch_hypercli() {
                 MD5_LOCAL=$(md5 ${TGT_FILE} | awk '{print $NF}')
                 ;;
       esac
-      if [ ${MD5_REMOTE} != ${MD5_LOCAL} ];then
+      if [[ ${MD5_REMOTE} != ${MD5_LOCAL} ]];then
         echo "required checksum: ${MD5_REMOTE}, but downloaded package is ${MD5_LOCAL}"
         show_message error "${ERR_PKG_MD5_ERROR[1]}" && exit "${ERR_PKG_MD5_ERROR[0]}"
       fi
@@ -150,17 +151,20 @@ fetch_hypercli() {
   set -e
 }
 extract_hypercli() {
+  cd ${WORK_DIR}
   case "${OS_TYPE}" in
     Linux)  PKG_FILE="${PKG_FILE_LINUX}"
       ${BASH_C} "tar xzf ${BOOTSTRAP_DIR}/${PKG_FILE} -C ${WORK_DIR}"
+      md5sum hyper | awk '{printf "MD5 (hyper) = %s\n", $1}'
       ;;
     Darwin) PKG_FILE="${PKG_FILE_MACOSX}"
       ${BASH_C} "unzip -o ${BOOTSTRAP_DIR}/${PKG_FILE} -d ${WORK_DIR}"
+      md5 hyper
       ;;
     *) show_message error "${ERR_NOT_SUPPORT_OS[1]}" && exit "${ERR_NOT_SUPPORT_OS[0]}"
       ;;
   esac
-  chmod +x ${WORK_DIR}/hyper
+  chmod +x hyper
   cat <<EOF
 hypercli '${WORK_DIR}/hyper' is ready
 
@@ -173,6 +177,7 @@ QuickStart:
   ./hyper ps -l
 
 For more information, please go to https://docs.hyper.sh
+For Community Edition of Hyper, please go to http://hypercontainer.io
 EOF
 }
 
