@@ -27,7 +27,7 @@ FC23_HYPER="hyper-0.5-1.fc23.x86_64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
-UBUNTU_CODE=(trusty utopic vivid wily)
+UBUNTU_CODE=(trusty utopic vivid wily xenial)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22 23)
