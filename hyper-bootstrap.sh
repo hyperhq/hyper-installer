@@ -1,5 +1,5 @@
 #!/bin/bash
-# Description:  This script is used to install hyper cli and hyperd
+# Description:  This script is used to install hyperctl and hyperd
 # Usage:
 #  install from remote
 #    wget -qO- http://hypercontainer.io/install | bash
@@ -20,10 +20,10 @@ UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ############ RPM ##############
 CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-2.el7.centos.x86_64"
-CENTOS7_HYPERSTART="hyperstart-0.5-1.el7.centos.x86_64"
-CENTOS7_HYPER="hyper-0.5-1.el7.centos.x86_64"
-FC23_HYPERSTART="hyperstart-0.5-1.fc23.x86_64"
-FC23_HYPER="hyper-0.5-1.fc23.x86_64"
+CENTOS7_HYPERSTART="hyperstart-0.6-1.el7.centos.x86_64"
+CENTOS7_HYPER="hyper-container-0.6-1.el7.centos.x86_64"
+FC23_HYPERSTART="hyperstart-0.6-1.fc23.x86_64"
+FC23_HYPER="hyper-container-0.6-1.fc23.x86_64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
@@ -61,7 +61,7 @@ ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
 main() {
-  show_message info "Welcome to Install Community Edition of Hyper...\n"
+  show_message info "Welcome to Install Community Edition of HyperContainer...\n"
   check_user
   check_os_platform
   check_os_distro
@@ -86,10 +86,10 @@ main() {
   exit 0
 }
 check_hyper_before_install() {
-  if (command_exist hyper hyperd);then
+  if (command_exist hyperctl hyperd);then
     echo "${WHITE}"
     cat <<COMMENT
-Prompt: "hyper" appears to already installed, hyperd serive will be restart during install.
+Prompt: "hyper-container" appears to already installed, hyperd serive will be restart during install.
 You may press Ctrl+C to abort this process.
 COMMENT
     echo -e -n "+ sleep ${SLEEP_SEC} seconds${RESET}"
@@ -316,11 +316,11 @@ install_hyper() {
     show_message error "${ERR_EXEC_INSTALL_FAILED[1]}" && exit "${ERR_EXEC_INSTALL_FAILED[0]}"
   fi
   echo -n "."
-  if [[ -f /usr/local/bin/hyper ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyper ]] && [[ ! -f /usr/bin/hyperd ]] ;then
-    ${BASH_C} "ln -s /usr/local/bin/hyper /usr/bin/hyper"
+  if [[ -f /usr/local/bin/hyperctl ]] && [[ -f /usr/local/bin/hyperd ]] && [[ ! -f /usr/bin/hyperctl ]] && [[ ! -f /usr/bin/hyperd ]] ;then
+    ${BASH_C} "ln -s /usr/local/bin/hyperctl /usr/bin/hyperctl"
     ${BASH_C} "ln -s /usr/local/bin/hyperd /usr/bin/hyperd"
   fi
-  if (command_exist hyper hyperd);then
+  if (command_exist hyperctl hyperd);then
     install_hyperd_service
     echo -n "."
   else
@@ -382,8 +382,8 @@ start_hyperd_service() {
     show_message success "\nhyperd is running."
     cat <<COMMENT
 ----------------------------------------------------
-To see how to use hyper cli:
-  sudo hyper help
+To see how to use hyperctl:
+  sudo hyperctl help
 To manage hyperd service:
   sudo service hyperd {start|stop|restart|status}
 To get more information:
@@ -398,6 +398,13 @@ Please try to start hyperd by manual:
 COMMENT
   fi
   set -e
+}
+handle_hyper_rpm_rename(){
+  if (command_exist hyper hyperd && ! command_exist hyperctl);then
+    ${BASH_C} "cp -f /etc/hyper/config /etc/hyper/config.rpmsave"
+    ${BASH_C} "yum remove -y hyper hyperstart"
+    ${BASH_C} "cp -f /etc/hyper/config.rpmsave /etc/hyper/config"
+  fi
 }
 install_from_rpm(){
   show_message info "Fetch rpm package for $1...\n"
@@ -414,11 +421,12 @@ install_from_rpm(){
       if [ $? -eq 0 ];then
         show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
       fi
-      if (command_exist hyper hyperd);then
+      if (command_exist hyperctl hyperd);then
         _ACT="update"
       else
         _ACT="install"
       fi
+      handle_hyper_rpm_rename
       ${BASH_C} "yum ${_ACT} -y ${S3_URL}/${CENTOS7_QEMU_HYPER}.rpm ${S3_URL}/${CENTOS7_HYPERSTART}.rpm ${S3_URL}/${CENTOS7_HYPER}.rpm"
       ;;
     fedora23)
@@ -426,11 +434,12 @@ install_from_rpm(){
       if [ $? -eq 0 ];then
         show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
       fi
-      if (command_exist hyper hyperd);then
+      if (command_exist hyperctl hyperd);then
         _ACT="update"
       else
         _ACT="install"
       fi
+      handle_hyper_rpm_rename
       ${BASH_C} "dnf ${_ACT} ${S3_URL}/${FC23_HYPERSTART}.rpm ${S3_URL}/${FC23_HYPER}.rpm"
       ;;
     *) show_message error "rpm install support centos7 & fedora23 only"; exit 1;;
