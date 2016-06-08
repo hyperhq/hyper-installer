@@ -14,7 +14,7 @@ CURRENT_USER="$(id -un 2>/dev/null || true)"
 BOOTSTRAP_DIR="/tmp/hyper-bootstrap-${CURRENT_USER}"
 BASH_C="bash -c"
 ########## Parameter ##########
-S3_URL="http://hyper-install.s3.amazonaws.com"
+S3_URL="http://hypercontainer-install.s3.amazonaws.com"
 PKG_FILE="hyper-latest.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
@@ -247,11 +247,11 @@ check_deps_initsystem() {
 fetch_hyper_package() {
   show_message info "Fetch checksum and package...\n"
   set +e
-  ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
+  ${BASH_C} "ping -c 3 -W 2 hypercontainer-install.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
-    S3_URL="http://mirror-hyper-install.s3.amazonaws.com"
+    S3_URL="http://mirror-hypercontainer-install.s3.amazonaws.com"
   else
-    S3_URL="http://hyper-install.s3.amazonaws.com"
+    S3_URL="http://hypercontainer-install.s3.amazonaws.com"
   fi
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
@@ -409,11 +409,11 @@ handle_hyper_rpm_rename(){
 install_from_rpm(){
   show_message info "Fetch rpm package for $1...\n"
   set +e
-  ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
+  ${BASH_C} "ping -c 3 -W 2 hypercontainer-install.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
-    S3_URL="http://mirror-hyper-install.s3.amazonaws.com"
+    S3_URL="http://mirror-hypercontainer-install.s3.amazonaws.com"
   else
-    S3_URL="http://hyper-install.s3.amazonaws.com"
+    S3_URL="http://hypercontainer-install.s3.amazonaws.com"
   fi
   case "$1" in
     centos7)
