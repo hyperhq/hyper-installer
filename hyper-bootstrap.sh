@@ -61,7 +61,7 @@ ERR_UNKNOWN_MSG_TYPE=98
 ERR_UNKNOWN=99
 ########## Function Definition ##########
 main() {
-  show_message info "Welcome to Install Community Edition of HyperContainer...\n"
+  show_message info "Welcome to Install HyperContainer...\n"
   check_user
   check_os_platform
   check_os_distro
