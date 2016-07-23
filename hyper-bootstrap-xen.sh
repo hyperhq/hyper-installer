@@ -33,16 +33,16 @@ WHITE=`tput setaf 7`
 LIGHT=`tput bold `
 RESET=`tput sgr0`
 #Error Message
-ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script need root privilege, please retry use 'sudo' or root user!")
-ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only support x86_64 platform!")
-ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only support ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
+ERR_ROOT_PRIVILEGE_REQUIRED=(10 "This install script needs root privilege, please retry use 'sudo' or root user!")
+ERR_NOT_SUPPORT_PLATFORM=(20 "Sorry, Hyper only supports x86_64 platform!")
+ERR_NOT_SUPPORT_DISTRO=(21 "Sorry, Hyper only supports ubuntu/debian/fedora/centos/linuxmint(17.x) now!")
 ERR_NOT_SUPPORT_DISTRO_VERSION=(22)
 ERR_NO_HYPERVISOR=(39 "You should have either Xen 4.5+ or Qemu 2.0+ installed to run hyper")
 ERR_QEMU_NOT_INSTALL=(40 "Please install Qemu 2.0+ first!")
 ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
-ERR_XEN_NOT_INSTALL=(50 "Please install xen 4.5+ first!")
-ERR_XEN_GET_VER_FAILED=(51 "Can not get xen version, xen daemon isn't running!")
-ERR_XEN_VER_LOW=(52 "Sorry, hyper only support xen 4.5+")
+ERR_XEN_NOT_INSTALL=(50 "Please install Xen 4.5+ first!")
+ERR_XEN_GET_VER_FAILED=(51 "Can not get Xen version, Xen daemon isn't running!")
+ERR_XEN_VER_LOW=(52 "Sorry, hyper only supports Xen 4.5+")
 ERR_FETCH_INST_PKG_FAILED=(60 "Fetch install package failed, please retry!")
 ERR_INST_PKG_MD5_ERROR=(61 "Checksum of install package error, please retry!")
 ERR_UNTAR_PKG_FAILED=(62 "Untar install package failed!")
@@ -73,7 +73,7 @@ check_hyper_before_install() {
   if (command_exist hyper hyperd);then
     echo "${WHITE}"
     cat <<COMMENT
-Prompt: "hyper" appears to already installed, hyperd serive will be restart during install.
+Prompt: "hyper" appears to have already installed, hyperd service will be restarted during installation.
 You may press Ctrl+C to abort this process.
 COMMENT
     echo -e -n "+ sleep ${SLEEP_SEC} seconds${RESET}"
@@ -92,7 +92,7 @@ check_user() {
     else
       show_message error "${ERR_ROOT_PRIVILEGE_REQUIRED[1]}" && exit ${ERR_ROOT_PRIVILEGE_REQUIRED[0]}
     fi
-    show_message info "${WHITE}Hint: Hyper installer need root privilege\n"
+    show_message info "${WHITE}Hint: Hyper installer needs root privilege\n"
     ${BASH_C} "echo -n"
   fi
 }
@@ -149,7 +149,7 @@ check_deps_distro() {
       then SUPPORT_CODE_LIST="${LINUX_MINT_CODE[@]}";
       fi
       if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
-        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
+        show_message error "Hyper supports ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
     ;;
@@ -159,7 +159,7 @@ check_deps_distro() {
       else SUPPORT_CODE_LIST="${DEBIAN_CODE[@]}";
       fi
       if (echo "${SUPPORT_CODE_LIST}" | grep -vqw "${LSB_CODE}");then
-        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
+        show_message error "Hyper supports ${LSB_DISTRO}( ${SUPPORT_CODE_LIST} ), but current is ${LSB_CODE}(${LSB_VER})"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
     ;;
@@ -170,7 +170,7 @@ check_deps_distro() {
       else SUPPORT_VER_LIST="${FEDORA_VER[@]}";
       fi
       if (echo "${SUPPORT_VER_LIST}" | grep -qvw "${CMAJOR}");then
-        show_message error "Hyper support ${LSB_DISTRO}( ${SUPPORT_VER_LIST} ), but current is ${LSB_VER}"
+        show_message error "Hyper supports ${LSB_DISTRO}( ${SUPPORT_VER_LIST} ), but current is ${LSB_VER}"
         exit ${ERR_NOT_SUPPORT_DISTRO_VERSION[0]}
       fi
     ;;
@@ -258,7 +258,7 @@ fetch_hyper_package() {
         NEW_MD5=$( cat ${TGT_FILE}.md5 | awk '{print $1}' )
         OLD_MD5=$( md5sum ${TGT_FILE} | awk '{print $1}' )
         if [[ ! -z ${OLD_MD5} ]] && [[ ! -z ${NEW_MD5} ]] && [[ "${OLD_MD5}" != "${NEW_MD5}" ]];then
-          show_message info "${LIGHT}Found new hyper version, will download it now!\n"
+          show_message info "${LIGHT}Found new hyper version, downloading it now!\n"
           ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/*"
         elif [ ! -z ${OLD_MD5} -a "${OLD_MD5}" == "${NEW_MD5}" ];then #no update
           ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/${UNTAR_DIR}"
@@ -349,7 +349,7 @@ stop_running_hyperd() {
   set +e
   pgrep hyperd >/dev/null 2>&1
   if [ $? -eq 0 ];then
-    echo -e "\nStopping running hyperd service before install"
+    echo -e "\nStopping running hyperd service before installation"
     if [ "${INIT_SYSTEM}" == "systemd" ]
     then ${BASH_C} "systemctl stop hyperd"
     else ${BASH_C} "service hyperd stop";
@@ -381,7 +381,7 @@ COMMENT
   else
     show_message warn "\nhyperd isn't running."
     cat <<COMMENT
-Please try to start hyperd by manual:
+Please try to start hyperd manually:
   sudo service hyperd restart
   sudo service hyperd status
 COMMENT
