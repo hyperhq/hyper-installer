@@ -15,9 +15,9 @@ CURRENT_USER=$(id -un 2>/dev/null || true)
 BOOTSTRAP_DIR="/tmp/hypercli-pkg-${CURRENT_USER}"
 BASH_C="bash -c"
 ########## Parameter ##########
-S3_URL="http://hyper-install.s3.amazonaws.com"
-PKG_FILE_LINUX="hyper-1.10-x86_64.tar.gz"
-PKG_FILE_MACOSX="hyper-1.10-mac.bin.zip"
+S3_URL="https://hyper-install.s3.amazonaws.com"
+PKG_FILE_LINUX="hyper-linux-x86_64.tar.gz"
+PKG_FILE_MACOSX="hyper-mac.bin.zip"
 SUPPORT_EMAIL="support@hyper.sh"
 #Color Constant
 RED=`tput setaf 1`
@@ -79,13 +79,10 @@ check_os_type() {
   esac
 }
 fetch_hypercli() {
-  show_message info "Fetch checksum and package...\n"
   set +e
   ${BASH_C} "ping -c 3 -W 2 hyper-install.s3.amazonaws.com >/dev/null 2>&1"
   if [ $? -ne 0 ];then
-    S3_URL="http://mirror-hyper-install.s3.amazonaws.com"
-  else
-    S3_URL="http://hyper-install.s3.amazonaws.com"
+    S3_URL="https://mirror-hyper-install.s3.amazonaws.com"
   fi
   local SRC_URL="${S3_URL}/${PKG_FILE}"
   local TGT_FILE="${BOOTSTRAP_DIR}/${PKG_FILE}"
@@ -94,6 +91,7 @@ fetch_hypercli() {
   show_message info "${SRC_URL} => ${TGT_FILE}\n"
   mkdir -p ${BOOTSTRAP_DIR} && cd ${BOOTSTRAP_DIR}
   if [ -s ${TGT_FILE} ];then
+    show_message info "${TGT_FILE} is exist, Check new version...\n"
     if [ "${USE_WGET}" == "true" ];then
       ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
     else
@@ -111,7 +109,7 @@ fetch_hypercli() {
           ;;
         esac
         if [[ ! -z ${OLD_MD5} ]] && [[ ! -z ${NEW_MD5} ]] && [[ "${OLD_MD5}" != "${NEW_MD5}" ]];then
-          show_message info "${LIGHT}Found new hypercli version, will download it now!\n"
+          show_message info "${LIGHT}hypercli updated, starting download...\n"
           ${BASH_C} "\rm  -rf ${BOOTSTRAP_DIR}/*"
         elif [[ ! -z ${OLD_MD5} ]] && [[ "${OLD_MD5}" == "${NEW_MD5}" ]];then #no update
           echo -n
@@ -124,6 +122,7 @@ fetch_hypercli() {
   fi
   if [ ! -f ${TGT_FILE} ];then
     \rm -rf ${TGT_FILE}.md5 >/dev/null 2>&1
+    show_message info "Fetch checksum...\n"
     if [ "${USE_WGET}" == "true" ];then
       ${CURL_C} ${SRC_URL}.md5 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
       ${CURL_C} ${SRC_URL} 2>&1 | grep --line-buffered "%" | sed -u -e "s,\.,,g" | awk '{printf("\b\b\b\b%4s", $2)}'
@@ -168,13 +167,17 @@ extract_hypercli() {
   cat <<EOF
 hypercli '${WORK_DIR}/hyper' is ready
 
-QuickStart:
-  ./hyper --help
+==============================================================================
+[QuickStart]
+#Step 1: get Hyper_ credential.
+  Register a new account on https://console.hyper.sh, then create a credential.
+#Step 2: Config hyper cli
   ./hyper config
-  ./hyper pull ubuntu
+#Step 3: use hyper cli
+  ./hyper pull busybox
   ./hyper images
-  ./hyper run --name hello -it ubuntu echo hello world
-  ./hyper ps -l
+  ./hyper run -t busybox echo helloworld
+  ./hyper ps -a
 
 For more information, please go to https://docs.hyper.sh
 For Community Edition of Hyper, please go to http://hypercontainer.io
