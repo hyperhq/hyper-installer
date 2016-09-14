@@ -20,10 +20,10 @@ UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ############ RPM ##############
 CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-2.el7.centos.x86_64"
-CENTOS7_HYPERSTART="hyperstart-0.6-1.el7.centos.x86_64"
-CENTOS7_HYPER="hyper-container-0.6-1.el7.centos.x86_64"
-FC23_HYPERSTART="hyperstart-0.6-1.fc23.x86_64"
-FC23_HYPER="hyper-container-0.6-1.fc23.x86_64"
+CENTOS7_HYPERSTART="hyperstart-0.6.2-1.el7.centos.x86_64"
+CENTOS7_HYPER="hyper-container-0.6.2-1.el7.centos.x86_64"
+FC23_HYPERSTART="hyperstart-0.6.2-1.fc23.x86_64"
+FC23_HYPER="hyper-container-0.6.2-1.fc23.x86_64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
