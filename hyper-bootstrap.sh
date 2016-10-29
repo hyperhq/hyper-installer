@@ -20,10 +20,13 @@ UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ############ RPM ##############
 CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-2.el7.centos.x86_64"
-CENTOS7_HYPERSTART="hyperstart-0.6.2-1.el7.centos.x86_64"
-CENTOS7_HYPER="hyper-container-0.6.2-1.el7.centos.x86_64"
-FC23_HYPERSTART="hyperstart-0.6.2-1.fc23.x86_64"
-FC23_HYPER="hyper-container-0.6.2-1.fc23.x86_64"
+CENTOS7_HYPERSTART="hyperstart-0.7.0-1.el7.centos.x86_64"
+CENTOS7_HYPER="hyper-container-0.7.0-1.el7.centos.x86_64"
+FC23_HYPERSTART="hyperstart-0.7.0-1.fc23.x86_64"
+FC23_HYPER="hyper-container-0.7.0-1.fc23.x86_64"
+############ DEB ##############
+DEBIAN_HYPERSTART="hypercontainer_0.7.0-2_amd64"
+DEBIAN_HYPER="hyperstart_0.7.0-1_amd64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
@@ -69,6 +72,12 @@ main() {
     install_from_rpm "centos7"
   elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "23" ]];then
     install_from_rpm "fedora23"
+  elif [[ "${LSB_DISTRO}" == "ubuntu" ]];then
+    check_deps
+    install_from_deb "ubuntu"
+  elif [[ "${LSB_DISTRO}" == "debian" ]];then
+    check_deps
+    install_from_deb "debian"
   else
     check_deps
     check_hyper_before_install
@@ -443,6 +452,33 @@ install_from_rpm(){
       ${BASH_C} "dnf ${_ACT} -y ${S3_URL}/${FC23_HYPERSTART}.rpm ${S3_URL}/${FC23_HYPER}.rpm"
       ;;
     *) show_message error "rpm install support centos7 & fedora23 only"; exit 1;;
+  esac
+  set -e
+}
+install_from_deb(){
+  show_message info "Fetch deb package for $1...\n"
+  set +e
+  ${BASH_C} "ping -c 3 -W 2 hypercontainer-install.s3.amazonaws.com >/dev/null 2>&1"
+  if [[ $? -ne 0 ]];then
+    S3_URL="http://mirror-hypercontainer-install.s3.amazonaws.com"
+  else
+    S3_URL="http://hypercontainer-install.s3.amazonaws.com"
+  fi
+  case "$1" in
+    ubuntu|debian)
+      dpkg -l ${DEBIAN_HYPER} > /dev/null 2>&1
+      if [[ $? -eq 0 ]];then
+        show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
+      fi
+      if (command_exist hyperctl hyperd);then
+        _ACT="update"
+      else
+        _ACT="install"
+      fi
+      ${BASH_C} "wget -q -O /tmp/${DEBIAN_HYPERSTART}.deb ${S3_URL}/${DEBIAN_HYPERSTART}.deb && dpkg -i /tmp/${DEBIAN_HYPERSTART}.deb"
+      ${BASH_C} "wget -q -O /tmp/${DEBIAN_HYPER}.deb ${S3_URL}/${DEBIAN_HYPER}.deb && dpkg -i /tmp/${DEBIAN_HYPER}.deb"
+      ;;
+    *) show_message error "deb install support debian & ubuntu only"; exit 1;;
   esac
   set -e
 }
