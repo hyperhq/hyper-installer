@@ -15,10 +15,10 @@ $ wget -qO- https://hyper.sh/install | bash
 
 ## install hypercontainer
 
-website： http://hypercontainer.io
+website： https://hypercontainer.io
 
 ```
-$ curl -sSL http://hypercontainer.io/install | bash
+$ curl -sSL https://hypercontainer.io/install | bash
 or
-$ wget -qO- http://hypercontainer.io/install | bash
+$ wget -qO- https://hypercontainer.io/install | bash
 ```
