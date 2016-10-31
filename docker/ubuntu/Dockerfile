@@ -6,6 +6,7 @@ COPY sources.list.xenial /etc/apt/sources.list
 
 # qemu 2.5.0
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends qemu-kvm qemu wget vim \
+    && apt-get install -y --no-install-recommends qemu-kvm qemu \
     libavahi-client3 libavahi-common3 libnl-3-200 libxml2 libicu55 xml-core sgml-base libavahi-common-data libvirt0 \
+    wget curl git vim ca-certificates \
 	  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*

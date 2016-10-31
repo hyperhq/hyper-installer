@@ -32,7 +32,9 @@ function run() {
     fi
     echo -e "\nrun conainer from [${image}] ..."
     docker run -d -t \
+      --privileged \
       --name ${container} \
+      --env HTTP_PROXY=$HTTP_PROXY  --env HTTPS_PROXY=$HTTPS_PROXY \
       -v `pwd`/../../../hyper-installer:/hyper-installer \
       $image top
     echo "---------------------------------------------------"
@@ -43,6 +45,24 @@ function run() {
 Run the following command to enter container:
     docker exec -it ${container} bash
 EOF
+}
+
+function test_hyper() {
+  echo -e "\ncheck conainer from [${image}] ..."
+  cnt=`docker ps -a --filter="name=${container}" | wc -l`
+  if [ $cnt -eq 1 ];then
+    run
+  fi
+  docker exec -it ${container} bash -c "curl -sSL https://hyper.sh/install | bash"
+}
+
+function test_hypercontainer() {
+  echo -e "\ncheck conainer from [${image}] ..."
+  cnt=`docker ps -a --filter="name=${container}" | wc -l`
+  if [ $cnt -eq 1 ];then
+    run
+  fi
+  docker exec -it ${container} bash -c "curl -sSL https://hypercontainer.io/install | bash"
 }
 
 case "$1" in
@@ -56,12 +76,20 @@ case "$1" in
     "run")
         run
         ;;
+    "test_hyper")
+        test_hyper
+        ;;
+    "test_hypercontainer")
+        test_hypercontainer
+        ;;
     *)
         cat <<EOF
 usage:
-    ./util.sh build       # build only
-    ./util.sh push        # build and push
-    ./util.sh run         # run only
+    ./util.sh build                # build only
+    ./util.sh push                 # build and push
+    ./util.sh run                  # run only
+    ./util.sh test_hyper           # test install script for hypercli of Hyper.sh
+    ./util.sh test_hypercontainer  # test install script for hypercontainer
 EOF
     exit 1
         ;;
