@@ -33,7 +33,7 @@ LINUX_MINT_CODE=(rafaela rebecca qiana)
 UBUNTU_CODE=(trusty utopic vivid wily xenial)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
-FEDORA_VER=(20 21 22 23)
+FEDORA_VER=(20 21 22 23 24)
 #Color Constant
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -53,6 +53,7 @@ ERR_QEMU_LOW_VERSION=(41 "Need Qemu version 2.0 at least!")
 ERR_XEN_NOT_INSTALL=(50 "Please install xen 4.5+ first!")
 ERR_XEN_GET_VER_FAILED=(51 "Can not get xen version, xen daemon isn't running!")
 ERR_XEN_VER_LOW=(52 "Sorry, hyper only support xen 4.5+")
+ERR_LIBVIRT_NOT_INSTALL=(53 "hypercontainer depends on libvirt0, please install libvirt0 first!")
 ERR_FETCH_INST_PKG_FAILED=(60 "Fetch install package failed, please retry!")
 ERR_INST_PKG_MD5_ERROR=(61 "Checksum of install package error, please retry!")
 ERR_UNTAR_PKG_FAILED=(62 "Untar install package failed!")
@@ -72,6 +73,8 @@ main() {
     install_from_rpm "centos7"
   elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "23" ]];then
     install_from_rpm "fedora23"
+  elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "24" ]];then
+    install_from_rpm "fedora24"
   elif [[ "${LSB_DISTRO}" == "ubuntu" ]];then
     check_deps
     install_from_deb "ubuntu"
@@ -438,7 +441,7 @@ install_from_rpm(){
       handle_hyper_rpm_rename
       ${BASH_C} "yum ${_ACT} -y ${S3_URL}/${CENTOS7_QEMU_HYPER}.rpm ${S3_URL}/${CENTOS7_HYPERSTART}.rpm ${S3_URL}/${CENTOS7_HYPER}.rpm"
       ;;
-    fedora23)
+    fedora23|fedora24)
       rpm -qa | grep ${FC23_HYPER} > /dev/null 2>&1
       if [[ $? -eq 0 ]];then
         show_message info "${ERR_HYPER_NO_NEW_VERSION[1]}"; exit 1
@@ -458,6 +461,15 @@ install_from_rpm(){
 install_from_deb(){
   show_message info "Fetch deb package for $1...\n"
   set +e
+  local USE_WGET=$( echo $(get_curl) | awk -F"|" '{print $1}' )
+  local CURL_C=$( echo $(get_curl) | awk -F"|" '{print $2}' )
+  LIBVIRT0=`dpkg -s libvirt0 2>/dev/null| grep Version| wc -l`
+  if [ ${LIBVIRT0} -eq 0 ];then
+    show_message info "hypercontainer depends on libvirt0(1.2.16-2+), start install libvirt0...\n"
+    show_message error "${ERR_LIBVIRT_NOT_INSTALL[1]}"
+    exit ${ERR_LIBVIRT_NOT_INSTALL[0]}
+  fi
+
   ${BASH_C} "ping -c 3 -W 2 hypercontainer-install.s3.amazonaws.com >/dev/null 2>&1"
   if [[ $? -ne 0 ]];then
     S3_URL="http://mirror-hypercontainer-install.s3.amazonaws.com"
@@ -475,8 +487,13 @@ install_from_deb(){
       else
         _ACT="install"
       fi
-      ${BASH_C} "wget -q -O /tmp/${DEBIAN_HYPERSTART}.deb ${S3_URL}/${DEBIAN_HYPERSTART}.deb && dpkg -i /tmp/${DEBIAN_HYPERSTART}.deb"
-      ${BASH_C} "wget -q -O /tmp/${DEBIAN_HYPER}.deb ${S3_URL}/${DEBIAN_HYPER}.deb && dpkg -i /tmp/${DEBIAN_HYPER}.deb"
+      if [[ "${USE_WGET}" == "true" ]];then
+        ${BASH_C} "${CURL_C} -O /tmp/${DEBIAN_HYPERSTART}.deb ${S3_URL}/${DEBIAN_HYPERSTART}.deb && dpkg -i /tmp/${DEBIAN_HYPERSTART}.deb"
+        ${BASH_C} "${CURL_C} -O /tmp/${DEBIAN_HYPER}.deb ${S3_URL}/${DEBIAN_HYPER}.deb && dpkg -i /tmp/${DEBIAN_HYPER}.deb"
+      else
+        ${BASH_C} "${CURL_C} /tmp/${DEBIAN_HYPERSTART}.deb ${S3_URL}/${DEBIAN_HYPERSTART}.deb && dpkg -i /tmp/${DEBIAN_HYPERSTART}.deb"
+        ${BASH_C} "${CURL_C} /tmp/${DEBIAN_HYPER}.deb ${S3_URL}/${DEBIAN_HYPER}.deb && dpkg -i /tmp/${DEBIAN_HYPER}.deb"
+      fi
       ;;
     *) show_message error "deb install support debian & ubuntu only"; exit 1;;
   esac
