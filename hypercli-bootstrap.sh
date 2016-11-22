@@ -180,7 +180,7 @@ hypercli '${WORK_DIR}/hyper' is ready
   ./hyper ps -a
 
 For more information, please go to https://docs.hyper.sh
-For Community Edition of Hyper, please go to http://hypercontainer.io
+For Community Edition of Hyper, please go to https://hypercontainer.io
 EOF
 }
 

@@ -3,9 +3,9 @@
 set -e
 
 repo="hyperhq/test-installer-centos"
-tag="7.2.1511"
+tag="6.8"
 image=${repo}:${tag}
-container="test-installer-centos"
+container="test-installer-centos-6"
 
 # DOCKER0=$(ifconfig | grep docker0 -A1 | grep "inet " | awk '{print $2}')
 # PROXY="http://${DOCKER0}:8118"
@@ -33,9 +33,10 @@ function run() {
     echo -e "\nrun conainer from [${image}] ..."
     docker run -d -t \
       --privileged \
+      --hostname ${container} \
       --name ${container} \
       --env HTTP_PROXY=$HTTP_PROXY  --env HTTPS_PROXY=$HTTPS_PROXY \
-      -v `pwd`/../../../hyper-installer:/hyper-installer \
+      -v `pwd`/../../../../hyper-installer:/hyper-installer \
       $image top
     echo "---------------------------------------------------"
     docker ps -a --filter="name=${container}"

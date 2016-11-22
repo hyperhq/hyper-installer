@@ -2,10 +2,10 @@
 
 set -e
 
-repo="hyperhq/test-installer-ubuntu"
-tag="16.04"
+repo="hyperhq/test-installer-debian"
+tag="7.11"
 image=${repo}:${tag}
-container="test-installer-ubuntu"
+container="test-installer-debian-wheezy"
 
 # DOCKER0=$(ifconfig | grep docker0 -A1 | grep "inet " | awk '{print $2}')
 # PROXY="http://${DOCKER0}:8118"
@@ -33,10 +33,11 @@ function run() {
     echo -e "\nrun conainer from [${image}] ..."
     docker run -d -t \
       --privileged \
+      --hostname ${container} \
       --name ${container} \
       --env HTTP_PROXY=$HTTP_PROXY  --env HTTPS_PROXY=$HTTPS_PROXY \
-      -v `pwd`/../../../hyper-installer:/hyper-installer \
-      $image top
+      -v `pwd`/../../../../hyper-installer:/hyper-installer \
+      $image sleep infinity
     echo "---------------------------------------------------"
     docker ps -a --filter="name=${container}"
     cat <<EOF

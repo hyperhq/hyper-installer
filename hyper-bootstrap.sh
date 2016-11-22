@@ -2,8 +2,8 @@
 # Description:  This script is used to install hyperctl and hyperd
 # Usage:
 #  install from remote
-#    wget -qO- http://hypercontainer.io/install | bash
-#    curl -sSL http://hypercontainer.io/install | bash
+#    wget -qO- https://hypercontainer.io/install | bash
+#    curl -sSL https://hypercontainer.io/install | bash
 # install from local
 #    ./hyper-bootstrap.sh
 BASE_DIR=$(cd "$(dirname "$0")"; pwd); cd ${BASE_DIR}
