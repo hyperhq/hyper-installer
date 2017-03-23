@@ -19,7 +19,7 @@ PKG_FILE="hyper-latest.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ############ RPM ##############
-CENTOS7_QEMU_HYPER="qemu-hyper-2.4.3-2.el7.centos.x86_64"
+CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-3.el7.centos.x86_64"
 CENTOS7_HYPERSTART="hyperstart-0.8.0-1.el7.centos.x86_64"
 CENTOS7_HYPER="hyper-container-0.8.0-1.el7.centos.x86_64"
 FC23_HYPERSTART="hyperstart-0.8.0-1.fc25.x86_64"
