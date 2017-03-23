@@ -19,21 +19,21 @@ PKG_FILE="hyper-latest.tgz"
 UNTAR_DIR="hyper-pkg"
 SUPPORT_EMAIL="support@hyper.sh"
 ############ RPM ##############
-CENTOS7_QEMU_HYPER="qemu-hyper-2.4.1-2.el7.centos.x86_64"
-CENTOS7_HYPERSTART="hyperstart-0.7.0-1.el7.centos.x86_64"
-CENTOS7_HYPER="hyper-container-0.7.0-1.el7.centos.x86_64"
-FC23_HYPERSTART="hyperstart-0.7.0-1.fc23.x86_64"
-FC23_HYPER="hyper-container-0.7.0-1.fc23.x86_64"
+CENTOS7_QEMU_HYPER="qemu-hyper-2.4.3-2.el7.centos.x86_64"
+CENTOS7_HYPERSTART="hyperstart-0.8.0-1.el7.centos.x86_64"
+CENTOS7_HYPER="hyper-container-0.8.0-1.el7.centos.x86_64"
+FC23_HYPERSTART="hyperstart-0.8.0-1.fc25.x86_64"
+FC23_HYPER="hyper-container-0.8.0-1.fc25.x86_64"
 ############ DEB ##############
-DEBIAN_HYPERSTART="hypercontainer_0.7.0-2_amd64"
-DEBIAN_HYPER="hyperstart_0.7.0-1_amd64"
+DEBIAN_HYPER="hypercontainer_0.8.0-1_amd64"
+DEBIAN_HYPERSTART="hyperstart_0.8.0-1_amd64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
 UBUNTU_CODE=(trusty utopic vivid wily xenial)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
-FEDORA_VER=(20 21 22 23 24)
+FEDORA_VER=(20 21 22 23 24 25)
 #Color Constant
 RED=`tput setaf 1`
 GREEN=`tput setaf 2`
@@ -75,6 +75,8 @@ main() {
     install_from_rpm "fedora23"
   elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "24" ]];then
     install_from_rpm "fedora24"
+  elif [[ "${LSB_DISTRO}" == "fedora" ]] && [[ "${CMAJOR}" == "25" ]];then
+    install_from_rpm "fedora25"
   elif [[ "${LSB_DISTRO}" == "ubuntu" ]];then
     check_deps
     install_from_deb "ubuntu"
