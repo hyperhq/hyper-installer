@@ -30,7 +30,7 @@ DEBIAN_HYPERSTART="hyperstart_0.8.1-1_amd64"
 ########## Constant ##########
 SUPPORT_DISTRO=(debian ubuntu fedora centos linuxmint)
 LINUX_MINT_CODE=(rafaela rebecca qiana)
-UBUNTU_CODE=(trusty utopic vivid wily xenial)
+UBUNTU_CODE=(trusty utopic vivid wily xenial bionic)
 DEBIAN_CODE=(jessie wheezy)
 CENTOS_VER=(6 7)
 FEDORA_VER=(20 21 22 23 24 25)
